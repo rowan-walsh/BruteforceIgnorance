@@ -1,0 +1,13 @@
+Measureable:
+-----------------------------------
+
+
+
+
+
+Arbitrary:
+-----------------------------------
+
+Rod diameter/thread to use for Brush Axle
+	Brush Axle
+	Brush Wheel
