@@ -47,7 +47,6 @@ int lcdRefreshCount = 0; // Current iteration. Do not change this value
 
 void setup()
 {
-	pulseOut(31, 10);
 }
 
 void loop()
