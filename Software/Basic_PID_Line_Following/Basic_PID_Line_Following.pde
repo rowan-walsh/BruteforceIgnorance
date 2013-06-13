@@ -10,7 +10,7 @@
 #define DERIVATIVE_GAIN 2
 #define THRESHOLD 3
 
-// Pins
+// Pin Definitions
 #define MENU_ADJUST_KNOB 6
 #define VALUE_ADJUST_KNOB 7
 #define LEFT_SENSOR 0
@@ -28,18 +28,22 @@
 
 // Sensor Values
 int left = 0;
-int right = 0;
+int right = 0; 
 int previousError = 0;
 int error = 0;
+bool leftDetected = false;
+bool rightDetected = false;
 
-// Tuning parameters
-float speed = EEPROM.read(SPEED) * 4; // multiplies by 4 so that it can reach 1000
+// Tuning parameters. These are saved to EEPROM
+float speed = EEPROM.read(SPEED) * 4; // Max EEPROM value is 255. Multiplies by 4 to get up to ~1000 with fidelity tradeoff
 float proportionalGain = EEPROM.read(PROPORTIONAL_GAIN);
 float derivativeGain = EEPROM.read(DERIVATIVE_GAIN);
 float threshold = EEPROM.read(THRESHOLD);
 
-// States
+// State tracking
 bool MENU = true;
+int lcdRefreshPeriod = 200; // Update LCD screen every n iterations. Larger = fewer updates. Smaller = flicker
+int lcdRefreshCount = 0; // Current iteration. Do not change this value
 
 void setup()
 {
@@ -50,54 +54,71 @@ void loop()
 	Update();
 	if (MENU) ProcessMenu();
 	else ProcessMovement();
-	delay(50);
 }
 
-// Updates the sensor readings. 
-// Also updates the LED indicators and detects button presses
+// Determines if the start button is being pressed.
+// Optional: Debounces the button for the specified number of milliseconds
+bool StartButton(int debounceTime = 80)
+{
+	if(!startbutton()) return false;
+	delay(debounceTime);
+	return startbutton();
+}
+
+// Determines if the stop button is being pressed
+// Optional: Debounces the button for the specified number of milliseconds
+bool StopButton(int debounceTime = 80)
+{
+	if(!stopbutton()) return false;
+	delay(debounceTime);
+	return stopbutton();
+}
+
+// Polls the inputs and obtains new sensor readings. 
+// Updates LED indicators and detects button presses
 void Update()
 {
+	// Gets new sensor readings
 	left = analogRead(LEFT_SENSOR);
 	right = analogRead(RIGHT_SENSOR);
-	digitalWrite(LEFT_LED, left < threshold);
-	digitalWrite(RIGHT_LED, right < threshold);
-	digitalWrite(ERROR_LED, !((left < threshold) && (right < threshold)));
-	if(stopbutton()) 
-	{
-		delay(50);
-		if(stopbutton()) MENU = true;
-	}
-	else if(startbutton())
-	{ 
-		delay(50);
-		if(!startbutton()) MENU = false;
-	}	
+	leftDetected = left > threshold;
+	rightDetected = right > threshold;
+	
+	// Updates the LED tape-detect indicators. Pin logic is inverted
+	digitalWrite(LEFT_LED, !leftDetected);
+	digitalWrite(RIGHT_LED, !rightDetected);
+	digitalWrite(ERROR_LED, !((!leftDetected) && (!rightDetected)));
+	
+	// Detects button presses and decrements the LCD counter
+	if(StopButton()) MENU = true;
+	if(StartButton()) MENU = false;
+	lcdRefreshCount = (lcdRefreshCount <= 0) ? lcdRefreshPeriod : (lcdRefreshCount - 1);
 }
 
-// Updates the PID values and calculates a new motor speed for
-// the left and right motors. Prints the motor values to the LCD
+// Computes new PID values and calculates a new motor speed for
+// the left and right motors. Prints motor and sensor values to LCD.
 void ProcessMovement()
 {
-	ShowSensorValues();
-	if ((left > threshold) && (right > threshold)) error = 0;
-	else if ((left < threshold) && (right > threshold)) error = TOO_LEFT;
-	else if ((left > threshold) && (right < threshold)) error = TOO_RIGHT;
+	if (leftDetected && rightDetected) error = 0;
+	else if (!leftDetected && rightDetected) error = TOO_LEFT;
+	else if (leftDetected && !rightDetected) error = TOO_RIGHT;
+	else if (!leftDetected && !rightDetected) error = (previousError <= TOO_LEFT) ? -OFF_TAPE : OFF_TAPE;
 	
-	if ((left < threshold) && (right < threshold))
-		if (previousError <= TOO_LEFT) error = OFF_TAPE * -1;	// detects left offshoot
-		else error = OFF_TAPE;									// detects right offshoot
 	float proportional = (float)error * proportionalGain;
 	float derivative = (float)(error - previousError) * derivativeGain;
-
 	motor.speed(LEFT_MOTOR, speed + (proportional + derivative));
 	motor.speed(RIGHT_MOTOR, speed - (proportional + derivative));
-	LCD.setCursor(0, 1);
-	LCD.print("L:"); LCD.print(speed - (proportional + derivative));
-	LCD.print(" R:"); LCD.print(speed + (proportional + derivative));
 	previousError = error;
+
+	if(lcdRefreshCount != 0) return; // Mitigates screen flicker
+	LCD.clear(); LCD.home();
+	LCD.print("L:"); LCD.print(left); LCD.print(" R:"); LCD.print(right); // Print sensor readings
+	LCD.setCursor(0, 1);
+	LCD.print("L:"); LCD.print((int)speed - (int)(proportional + derivative));
+	LCD.print(" R:"); LCD.print((int)speed + (int)(proportional + derivative));
 }
 
-// Displays the current tuning parameter value on the LCD
+// Displays a tuning parameter on the LCD
 void ProcessMenu()
 {
 	motor.stop_all();
@@ -106,72 +127,52 @@ void ProcessMenu()
 	LCD.print("Set to "); LCD.print(knobValue); LCD.print("?");
 	LCD.home();
 
-	int menuItem = knob(MENU_ADJUST_KNOB) / 255;
+	int menuItem = knob(MENU_ADJUST_KNOB) / 256; // Divides by 256 to reduce possible values
 	switch (menuItem)
 	{
 	case SPEED:
 		LCD.print("Speed: ");
 		LCD.print(speed);
-		if (!stopbutton()) break;
-		delay(10);
-		if (!stopbutton()) break;
+		if (!StopButton()) break;
 		speed = knobValue * 4;
-		EEPROM.write(SPEED, speed / 4);
+		EEPROM.write(SPEED, speed / 4); // divide by four to prevent overflow (EEPROM max is 255)
 		break;
 	case PROPORTIONAL_GAIN:
 		LCD.print("P Gain: ");
 		LCD.print(proportionalGain);
-		if (!stopbutton()) break;
-		delay(10);
-		if (!stopbutton()) break;
+		if (!StopButton()) break;
 		proportionalGain = knobValue;
 		EEPROM.write(PROPORTIONAL_GAIN, proportionalGain);
 		break;
 	case DERIVATIVE_GAIN:
 		LCD.print("D Gain: ");
 		LCD.print(derivativeGain);
-		if (!stopbutton()) break;
-		delay(10);
-		if (!stopbutton()) break;
+		if (!StopButton()) break;
 		derivativeGain = knobValue;
 		EEPROM.write(DERIVATIVE_GAIN, derivativeGain);
 		break;
 	case THRESHOLD:
-		LCD.print("Thresh");
+		LCD.print("TH: ");
 		LCD.print((int)threshold);
 		LCD.print(" ");
 		LCD.print(left);
 		LCD.print(" ");
 		LCD.print(right);
-		if (!stopbutton()) break;
-		delay(10);
-		if (!stopbutton()) break;
+		if (!StopButton()) break;
 		threshold = knobValue;
 		EEPROM.write(THRESHOLD, threshold);
 		break;
-	default:
-		LCD.print("Thresh");
+	default: // Selects threshold by default
+		LCD.print("TH: ");
 		LCD.print((int)threshold);
 		LCD.print(" ");
 		LCD.print(left);
 		LCD.print(" ");
 		LCD.print(right);
-		if (!stopbutton()) break;
-		delay(10);
-		if (!stopbutton()) break;
+		if (!StopButton()) break;
 		threshold = knobValue;
 		EEPROM.write(THRESHOLD, threshold);
 		break;
 	}
-}
-
-// Shows the raw IR sensor values for the left and right sensors on the LCD
-void ShowSensorValues()
-{
-	LCD.clear();
-	LCD.home();
-	LCD.print("L:");
-	LCD.print(left);
-	LCD.print(" R:");
-	LCD.print(right);
+	delay(30); // Pauses to prevent screen flicker
 }
