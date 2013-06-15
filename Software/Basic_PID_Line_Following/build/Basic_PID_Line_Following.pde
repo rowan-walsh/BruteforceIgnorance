@@ -4,6 +4,7 @@
 #include <Servo253.h> 
 #include <EEPROM.h>
 
+
 // Parameters
 #define SPEED 0
 #define PROPORTIONAL_GAIN 1
@@ -47,6 +48,11 @@ int lcdRefreshCount = 0; // Current iteration. Do not change this value
 
 void setup()
 {
+	portMode(0, INPUT) ;      //   ***** from 253 template file
+	portMode(1, INPUT) ;      //   ***** from 253 template file
+	RCServo0.attach(RCServo0Output) ;
+	RCServo1.attach(RCServo1Output) ;
+	RCServo2.attach(RCServo2Output) ;
 }
 
 void loop()
@@ -78,17 +84,19 @@ bool StopButton(int debounceTime = 80)
 // Updates LED indicators and detects button presses
 void Update()
 {
+	RCServo1.write(knob(VALUE_ADJUST_KNOB));
+
 	// Gets new sensor readings
 	left = analogRead(LEFT_SENSOR);
 	right = analogRead(RIGHT_SENSOR);
 	leftDetected = left > threshold;
 	rightDetected = right > threshold;
-	
+
 	// Updates the LED tape-detect indicators. Pin logic is inverted
 	digitalWrite(LEFT_LED, !leftDetected);
 	digitalWrite(RIGHT_LED, !rightDetected);
 	digitalWrite(ERROR_LED, !((!leftDetected) && (!rightDetected)));
-	
+
 	// Detects button presses and decrements the LCD counter
 	if(StopButton()) MENU = true;
 	if(StartButton()) MENU = false;
@@ -103,7 +111,7 @@ void ProcessMovement()
 	else if (!leftDetected && rightDetected) error = TOO_LEFT;
 	else if (leftDetected && !rightDetected) error = TOO_RIGHT;
 	else if (!leftDetected && !rightDetected) error = (previousError <= TOO_LEFT) ? -OFF_TAPE : OFF_TAPE;
-	
+
 	float proportional = (float)error * proportionalGain;
 	float derivative = (float)(error - previousError) * derivativeGain;
 	motor.speed(LEFT_MOTOR, speed + (proportional + derivative));
