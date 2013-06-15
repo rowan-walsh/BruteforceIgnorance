@@ -1,0 +1,10 @@
+---------------------
+  Mars Rover Wheels	- Needs a better/more technical name for the report
+---------------------
+
+Design aspects to explain:
+	- Need for this particular rotating-wheel design
+	- Lazy-Susan bearings
+	- Servo actuated, absolute positioning
+	- >90deg range of rotation, with minimal moment and shear passed onto the servo
+	- General rigidity
