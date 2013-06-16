@@ -2,16 +2,6 @@
   DRIVE SYSTEM
 ================
 
-
-Design aspects to explain:
-	- Differential rear wheel drive for tape-following
-	- Wheel size
-	- Need for this particular rotating-wheel design
-	- Lazy-Susan bearings
-	- Servo actuated, absolute positioning
-		- >90deg range of rotation, with minimal moment and shear passed onto the servo
-		- General rigidity
-
 The design of the robot's drive system addresses its need to steer while moving forwards and strafe laterally along the target wall.
 
 Differential Rear Wheel Drive
@@ -19,14 +9,21 @@ Differential Rear Wheel Drive
 
 While the robot is following tape and tracking an IR beacon, it is advantageous for it to use rear differential drive to turn and steer.  With reflectance sensors for the tape placed towards the front of the robot, the distance between the center-of-steering and the tape-sensors is maximized; this leads to faster and more accurate tape-following.
 
-	Include diagram (SOLIDWORKS drawing) of approx. robot size and center-of-steering
-
 However, with the center of steering placed towards the rear of the robot the moment of inertia around this point will become trickier to minimize.  Placing the relatively heavy firing mechanism and battery along the center axis of the robot will help to minimize the moment of inertia.
 
+Geared Barber-Coleman motors will be used to direct-drive each wheel.  These motors have a max torque of 20 N cm and a no-load speed of 470 rpm.  If our robot is assumed to have a cruising speed of 1 m/s and 60 mm diameter wheels (as shown in the design below), the wheels will need to rotate at 318 rpm.  Neglecting the robot's purposeful movement for a moment, and assuming a maximum weight of 5 kg, the torque on the wheels due to the robot's weight on a sloped is about 7 N cm.  This estimate of the cruising speed and torque for this motor and wheel combination places our robot comfortably within the "Green Zone" of efficient motor operation.
 
-Straffing
+Strafing
 ---------
 
-In order to quickly traverse along the row of targets, the robot will strafe along the top wall of the arena, stopping to fire and re-collect when an un-flipped target is detected.  In order to strafe, the rear wheels are both rotated 90degrees until they are parallel to the wall.  The angle and speed of the wheels can be adjusted based on the wall-detecting sensors so that the robot maintains an accurate course.
+In order to quickly traverse along the row of targets, the robot will strafe along the top wall of the arena, stopping to fire and re-collect when an un-flipped target is detected.  In order to strafe, the rear wheels and their driving motors are rotated 90degrees about the vertical axis until they are parallel to the wall.  The angle and speed of the wheels may then be adjusted based on the wall-detecting sensors so that the robot maintains an accurate course.
 
-With the rotating wheel design, 
+A challenge faced in this design was isolating the servo or motor responsible for rotating the wheel drive assembly from any forces applied to the wheel as the robot accelerates around the arena.  At the same time, the angular acutuation had to be accurate and repeatable.  These design points were met with the use of turntable, or "Lazy Susan", bearings.
+
+	Include picture of lazy susan bearings
+
+Since these bearings rotate along the edge of a circle, instead of around an axle, the chance of binding under shear forces is much reduced.  The wheel and its drive motor are mounted on the upper rotating plate while a small wheel diameter can be used due to the bearing's thin profile.  As seen in the model below, a servo is geared to provide angular acutation of the wheel drive assembly while remaining isolated from any forces applied to the wheel.  Moments about the bearing's vertical axis are still applied to the servo, however with a gear ratio of 5:8 and a holding torwue of 42 N cm, the servo will be able to hold a maximum moment 67.2 N cm.
+
+	Include picture of drive model
+
+If these moments (and the holding current drawn by the servo due to them) becomes a problem, extra friction can be introduced to the system to the gearing system.  While the servo can overcome this friction when it is turning the drive assembly, the friction will take a portion of any applied moments when the drive system is not rotating.
