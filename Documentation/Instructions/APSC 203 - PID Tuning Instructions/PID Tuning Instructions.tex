@@ -4,6 +4,10 @@
 \usepackage{graphicx}
 \usepackage{changepage}
 
+% Changes section numbering from 1, 2, 3 to 1.0, 2.0, 3.0
+\renewcommand*\thesection{\arabic{section}.0}
+\renewcommand*\thesubsection{\arabic{section}.\arabic{subsection}}
+
 \begin{document}
 
 \title{PID Tuning Instructions for a Line-Following Robot}
