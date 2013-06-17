@@ -12,7 +12,7 @@ The firing system consists of two rollers spun opposite to each other by an Un-g
 
 	Include render of roller
 
-The Un-geared Barber-Coleman motor is used for its higher maximum speed.  Assuming a 5 m/s exit velocity of the ball and the 50 mm diameter rollers used in the design, the discs will need to be spun to about 1900 rpm.  A 1:1 gear ratio between the two rotors will ensure that their speeds are exactly synchronized, which is important for consistently firing the balls straight.  3D-printed guides will constrain the balls vertically between the rollers, away from the gearing.
+The Un-geared Barber Coleman motor is used for its higher maximum speed.  Assuming a 5 m/s exit velocity of the ball and the 50 mm diameter rollers used in the design, the discs will need to be spun to about 1900 rpm.  A 1:1 gear ratio between the two rotors will ensure that their speeds are exactly synchronized, which is important for consistently firing the balls straight.  3D-printed guides will constrain the balls vertically between the rollers, away from the gearing.
 
 
 Lifting
