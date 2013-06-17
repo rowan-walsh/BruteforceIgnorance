@@ -1,0 +1,31 @@
+=================
+  FIRING SYSTEM
+=================
+
+The firing system uses two rollers, spinning in opposite directions.  The rollers use a similar design to the ball-collector brush: strings strung between two plates with holes along their circumferences.  The rollers driven by a single motor and are geared together, ensuring both spin at the same rate.  The ball is lifted from a ramp below the firing mechanism into place between the rollers by a servo-actuated arm.
+
+
+Rollers
+-------
+
+The firing system consists of two rollers spun opposite to each other by an Un-geared Barber Coleman.  The rollers consist of two separated plates with string strung between them along the circumferences.  It was observed in tests of the collector mechanism that this string design deforms well to the ball and provides excellent grip.  The string used for the firing rollers will be Kevlar Size 5 thread, which provides the necessary strength with an approximate breaking strength of 600 N.  To keep friction minimal between the rollers and the stationary axle, the roller plates will be cut from brass.  Despite a longer spin-up time, the added weight of the brass will provide most of the energy when firing a ball (the motor's energy is stored in the angular momentum of the discs during spin-up).
+
+	Include render of roller
+
+The Un-geared Barber-Coleman motor is used for its higher maximum speed.  Assuming a 5 m/s exit velocity of the ball and the 50 mm diameter rollers used in the design, the discs will need to be spun to about 1900 rpm.  A 1:1 gear ratio between the two rotors will ensure that their speeds are exactly synchronized, which is important for consistently firing the balls straight.  3D-printed guides will constrain the balls vertically between the rollers, away from the gearing.
+
+
+Lifting
+-------
+
+Once collected by the collection roller, the balls are corralled into a line-up below the firing mechanism.  This line-up ends with the next ball to be fired sitting in the small hollow of a servo-actuated arm.  A reflectance sensor within this hollow confirms the presence of a ball before firing.  The arm lifts the ball into the gap between the rollers; once the ball makes contact with the roller's strings it is quickly accelerated between the rollers and towards the targets.
+
+	Include diagram of lifting mechanism
+
+
+Tuning
+------
+
+Calculations can be done to obtain rough estimates and checks for the roller diameter and speed, but as any friction and play in the physical mechanism cannot be fully taken into account, tuning the system will have an important role in determining its final configuration.  This is taken into account with the design of the firing system's structure; with slots to adjust the angle of the entire firing assembly relative to the chassis and a ball-lifting system that can be adjusted to work with a range of firing heights.
+
+In particular, the firing speed will need to be carefully tuned:  the possibility of targets bouncing back from an "away-flipped" state limits the exit velocity, while the need to consistently knock-over the targets sets a lower bound.

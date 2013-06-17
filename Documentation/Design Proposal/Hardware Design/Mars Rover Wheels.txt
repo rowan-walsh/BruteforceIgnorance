@@ -7,22 +7,22 @@ The design of the robot's drive system addresses its need to steer while moving 
 Differential Rear Wheel Drive
 -----------------------------
 
-While the robot is following tape and tracking an IR beacon, it is advantageous for it to use rear differential drive to turn and steer.  With reflectance sensors for the tape placed towards the front of the robot, the distance between the center-of-steering and the tape-sensors is maximized; this leads to faster and more accurate tape-following.
+While the robot is following tape and tracking an IR beacon, it is advantageous for it to use rear differential drive to turn and steer.  With reflectance sensors for the tape placed towards the front of the robot, the distance between the centre-of-steering and the tape-sensors is maximized; this leads to faster and more accurate tape-following.
 
-However, with the center of steering placed towards the rear of the robot the moment of inertia around this point will become trickier to minimize.  Placing the relatively heavy firing mechanism and battery along the center axis of the robot will help to minimize the moment of inertia.
+However, with the centre of steering placed towards the rear of the robot the moment of inertia around this point will become trickier to minimize.  Placing the relatively heavy firing mechanism and battery along the centre axis of the robot will help to minimize the moment of inertia.
 
-Geared Barber-Coleman motors will be used to direct-drive each wheel.  These motors have a max torque of 20 N cm and a no-load speed of 470 rpm.  If our robot is assumed to have a cruising speed of 1 m/s and 60 mm diameter wheels (as shown in the design below), the wheels will need to rotate at 318 rpm.  Neglecting the robot's purposeful movement for a moment, and assuming a maximum weight of 5 kg, the torque on the wheels due to the robot's weight on a sloped is about 7 N cm.  This estimate of the cruising speed and torque for this motor and wheel combination places our robot comfortably within the "Green Zone" of efficient motor operation.
+Geared Barber-Coleman motors will be used to direct-drive each wheel.  These motors have a maximum torque of 20 N cm and a no-load speed of 470 rpm.  If our robot is assumed to have a cruising speed of 1 m/s and 60 mm diameter wheels (as shown in the design below), the wheels will need to rotate at 318 rpm.  Neglecting the robot's purposeful movement for a moment, and assuming a maximum weight of 5 kg, the torque on the wheels due to the robot's weight on a sloped is about 7 N cm.  This estimate of the cruising speed and torque for this motor and wheel combination places our robot comfortably within the "Green Zone" of efficient motor operation.
 
 Strafing
 ---------
 
 In order to quickly traverse along the row of targets, the robot will strafe along the top wall of the arena, stopping to fire and re-collect when an un-flipped target is detected.  In order to strafe, the rear wheels and their driving motors are rotated 90degrees about the vertical axis until they are parallel to the wall.  The angle and speed of the wheels may then be adjusted based on the wall-detecting sensors so that the robot maintains an accurate course.
 
-A challenge faced in this design was isolating the servo or motor responsible for rotating the wheel drive assembly from any forces applied to the wheel as the robot accelerates around the arena.  At the same time, the angular acutuation had to be accurate and repeatable.  These design points were met with the use of turntable, or "Lazy Susan", bearings.
+A challenge faced in this design was isolating the servo or motor responsible for rotating the wheel drive assembly from any forces applied to the wheel as the robot accelerates around the arena.  At the same time, the angular actuation had to be accurate and repeatable.  These design points were met with the use of turntable, or "Lazy Susan", bearings.
 
 	Include picture of lazy susan bearings
 
-Since these bearings rotate along the edge of a circle, instead of around an axle, the chance of binding under shear forces is much reduced.  The wheel and its drive motor are mounted on the upper rotating plate while a small wheel diameter can be used due to the bearing's thin profile.  As seen in the model below, a servo is geared to provide angular acutation of the wheel drive assembly while remaining isolated from any forces applied to the wheel.  Moments about the bearing's vertical axis are still applied to the servo, however with a gear ratio of 5:8 and a holding torwue of 42 N cm, the servo will be able to hold a maximum moment 67.2 N cm.
+Since these bearings rotate along the edge of a circle, instead of around an axle, the chance of binding under shear forces is much reduced.  The wheel and its drive motor are mounted on the upper rotating plate while a small wheel diameter can be used due to the bearing's thin profile.  As seen in the model below, a servo is geared to provide angular actuation of the wheel drive assembly while remaining isolated from any forces applied to the wheel.  Moments about the bearing's vertical axis are still applied to the servo, however with a gear ratio of 5:8 and a holding torque of 42 N cm, the servo will be able to hold a maximum moment 67.2 N cm.
 
 	Include picture of drive model
 
