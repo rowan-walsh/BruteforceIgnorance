@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-2.4-1.40.13 (MiKTeX 2.9 64-bit) (preloaded format=pdflatex 2013.5.13)  16 JUN 2013 23:00
+This is pdfTeX, Version 3.1415926-2.4-1.40.13 (MiKTeX 2.9 64-bit) (preloaded format=pdflatex 2013.5.13)  17 JUN 2013 15:41
 entering extended mode
 **PID*Tuning*Instructions.tex
 
@@ -102,18 +102,18 @@ Package: changepage 2009/10/20 v1.0c check page and change page layout
 )
 ("C:\Users\Rowan\Documents\GitHub\BruteforceIgnorance\Documentation\Instruction
 s\APSC 203 - PID Tuning Instructions\PID Tuning Instructions.aux")
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 7.
-LaTeX Font Info:    ... okay on input line 7.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 7.
-LaTeX Font Info:    ... okay on input line 7.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 7.
-LaTeX Font Info:    ... okay on input line 7.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 7.
-LaTeX Font Info:    ... okay on input line 7.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 7.
-LaTeX Font Info:    ... okay on input line 7.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 7.
-LaTeX Font Info:    ... okay on input line 7.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 11.
+LaTeX Font Info:    ... okay on input line 11.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 11.
+LaTeX Font Info:    ... okay on input line 11.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 11.
+LaTeX Font Info:    ... okay on input line 11.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 11.
+LaTeX Font Info:    ... okay on input line 11.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 11.
+LaTeX Font Info:    ... okay on input line 11.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 11.
+LaTeX Font Info:    ... okay on input line 11.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
@@ -164,16 +164,16 @@ LaTeX Font Info:    ... okay on input line 7.
 \everyMPtoPDFconversion=\toks17
 )
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <12> on input line 13.
+(Font)              <12> on input line 17.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <8> on input line 13.
+(Font)              <8> on input line 17.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <6> on input line 13.
+(Font)              <6> on input line 17.
  <Figures/power_switch.jpg, id=1, 3276.24pt x 2457.18pt>
 File: Figures/power_switch.jpg Graphic file (type jpg)
 
 <use Figures/power_switch.jpg>
-Package pdftex.def Info: Figures/power_switch.jpg used on input line 31.
+Package pdftex.def Info: Figures/power_switch.jpg used on input line 35.
 (pdftex.def)             Requested size: 303.53267pt x 227.62303pt.
 
 
@@ -186,7 +186,7 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 File: Figures/reflectance_sensors.jpg Graphic file (type jpg)
 
 <use Figures/reflectance_sensors.jpg>
-Package pdftex.def Info: Figures/reflectance_sensors.jpg used on input line 41.
+Package pdftex.def Info: Figures/reflectance_sensors.jpg used on input line 45.
 
 (pdftex.def)             Requested size: 303.53267pt x 227.62303pt.
 
@@ -196,7 +196,7 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 <Figures/knobs.jpg, id=11, 3276.24pt x 2457.18pt>
 File: Figures/knobs.jpg Graphic file (type jpg)
  <use Figures/knobs.jpg>
-Package pdftex.def Info: Figures/knobs.jpg used on input line 51.
+Package pdftex.def Info: Figures/knobs.jpg used on input line 55.
 (pdftex.def)             Requested size: 303.53267pt x 227.62303pt.
 
 
@@ -207,18 +207,18 @@ ons/APSC 203 - PID Tuning Instructions/Figures/power_switch.jpg>]
 <Figures/buttons.jpg, id=15, 3276.24pt x 2457.18pt>
 File: Figures/buttons.jpg Graphic file (type jpg)
  <use Figures/buttons.jpg>
-Package pdftex.def Info: Figures/buttons.jpg used on input line 59.
+Package pdftex.def Info: Figures/buttons.jpg used on input line 63.
 (pdftex.def)             Requested size: 303.53267pt x 227.62303pt.
 
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-LaTeX Font Info:    Try loading font information for OMS+cmr on input line 67.
+LaTeX Font Info:    Try loading font information for OMS+cmr on input line 71.
 (C:\MiKTeX\tex\latex\base\omscmr.fd
 File: omscmr.fd 1999/05/25 v2.5h Standard LaTeX font definitions
 )
 LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <10.95> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 67.
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 71.
  [3 <C:/Users/Rowan/Documents/GitHub/BruteforceIgnorance/Documentation/Instruct
 ions/APSC 203 - PID Tuning Instructions/Figures/reflectance_sensors.jpg>] [4 <C
 :/Users/Rowan/Documents/GitHub/BruteforceIgnorance/Documentation/Instructions/A
@@ -230,7 +230,7 @@ s\APSC 203 - PID Tuning Instructions\PID Tuning Instructions.aux") )
 Here is how much of TeX's memory you used:
  1740 strings out of 493921
  24393 string characters out of 3154500
- 81111 words of memory out of 3000000
+ 81146 words of memory out of 3000000
  5044 multiletter control sequences out of 15000+200000
  8144 words of font info for 29 fonts, out of 3000000 for 9000
  841 hyphenation exceptions out of 8191
@@ -240,7 +240,7 @@ fonts/type1/public/amsfonts/cm/cmbx12.pfb><C:/MiKTeX/fonts/type1/public/amsfont
 s/cm/cmr10.pfb><C:/MiKTeX/fonts/type1/public/amsfonts/cm/cmr12.pfb><C:/MiKTeX/f
 onts/type1/public/amsfonts/cm/cmr17.pfb><C:/MiKTeX/fonts/type1/public/amsfonts/
 cm/cmsy10.pfb>
-Output written on "PID Tuning Instructions.pdf" (5 pages, 8380226 bytes).
+Output written on "PID Tuning Instructions.pdf" (5 pages, 8380378 bytes).
 PDF statistics:
  42 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
