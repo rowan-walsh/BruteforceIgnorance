@@ -1,0 +1,22 @@
+Sensor board specifications
+
+Input
+* 8 sensors
+	* 4 QRD (signal, +5V, GRND)
+	* 2 laser (
+	* 2 touch (signal, GRND)
+* Total: 16 cables + 2 * laser cables
+
+Output
+* 10-conductor ribbon cable
+	* +5V
+	* GRND
+	* 8 signals
+* Ribbon cable does not have to be removed from sensor board
+* Ribbon cable should end in male header
+	* They're ordering more
+
+Misc.:
+* Trimpots need to be accessible
+* Board will be stored (ideally) behind the larger end of the brush
+* Sensors need to be easy to plug and unplug
