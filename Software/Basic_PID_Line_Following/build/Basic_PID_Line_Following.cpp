@@ -4,7 +4,6 @@
 #include <Servo253.h> 
 #include <EEPROM.h>
 
-
 // Parameters
 #define SPEED 0
 #define PROPORTIONAL_GAIN 1
@@ -16,7 +15,7 @@
 #define VALUE_ADJUST_KNOB 7
 #define LEFT_SENSOR 0
 #define RIGHT_SENSOR 1
-#define LEFT_MOTOR 1
+#define LEFT_MOTOR 2
 #define RIGHT_MOTOR 3
 #define LEFT_LED 7
 #define RIGHT_LED 5
@@ -60,6 +59,9 @@ void setup()
 	RCServo0.attach(RCServo0Output) ;
 	RCServo1.attach(RCServo1Output) ;
 	RCServo2.attach(RCServo2Output) ;
+        RCServo0.write(0);
+        RCServo1.write(0);
+        RCServo2.write(0);
 }
 
 void loop()
@@ -91,19 +93,17 @@ bool StopButton(int debounceTime = 80)
 // Updates LED indicators and detects button presses
 void Update()
 {
-	RCServo1.write(knob(VALUE_ADJUST_KNOB));
-
 	// Gets new sensor readings
 	left = analogRead(LEFT_SENSOR);
 	right = analogRead(RIGHT_SENSOR);
 	leftDetected = left > threshold;
 	rightDetected = right > threshold;
-
+	
 	// Updates the LED tape-detect indicators. Pin logic is inverted
 	digitalWrite(LEFT_LED, !leftDetected);
 	digitalWrite(RIGHT_LED, !rightDetected);
 	digitalWrite(ERROR_LED, !((!leftDetected) && (!rightDetected)));
-
+	
 	// Detects button presses and decrements the LCD counter
 	if(StopButton()) MENU = true;
 	if(StartButton()) MENU = false;
@@ -118,7 +118,7 @@ void ProcessMovement()
 	else if (!leftDetected && rightDetected) error = TOO_LEFT;
 	else if (leftDetected && !rightDetected) error = TOO_RIGHT;
 	else if (!leftDetected && !rightDetected) error = (previousError <= TOO_LEFT) ? -OFF_TAPE : OFF_TAPE;
-
+	
 	float proportional = (float)error * proportionalGain;
 	float derivative = (float)(error - previousError) * derivativeGain;
 	motor.speed(LEFT_MOTOR, speed + (proportional + derivative));

@@ -15,7 +15,7 @@
 #define VALUE_ADJUST_KNOB 7
 #define LEFT_SENSOR 0
 #define RIGHT_SENSOR 1
-#define LEFT_MOTOR 1
+#define LEFT_MOTOR 2
 #define RIGHT_MOTOR 3
 #define LEFT_LED 7
 #define RIGHT_LED 5
@@ -47,6 +47,14 @@ int lcdRefreshCount = 0; // Current iteration. Do not change this value
 
 void setup()
 {
+	portMode(0, INPUT) ;      //   ***** from 253 template file
+	portMode(1, INPUT) ;      //   ***** from 253 template file
+	RCServo0.attach(RCServo0Output) ;
+	RCServo1.attach(RCServo1Output) ;
+	RCServo2.attach(RCServo2Output) ;
+        RCServo0.write(0);
+        RCServo1.write(0);
+        RCServo2.write(0);
 }
 
 void loop()
