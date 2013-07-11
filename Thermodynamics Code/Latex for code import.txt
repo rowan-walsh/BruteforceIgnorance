@@ -1,0 +1,48 @@
+\usepackage{listings}
+\usepackage{xcolor}% http://ctan.org/pkg/xcolor
+\definecolor{bluekeywords}{rgb}{0.13,0.13,1}
+\definecolor{greencomments}{rgb}{0,0.5,0}
+\definecolor{turqusnumbers}{rgb}{0.17,0.57,0.69}
+\definecolor{redstrings}{rgb}{0.5,0,0}
+
+\lstdefinelanguage{FSharp}
+    {morekeywords={let, new, match, with, rec, open, module, namespace, type, of, member, and, for, in, do, begin, end, fun, function, try, mutable, if, then, else},
+    keywordstyle=\color{bluekeywords},
+    sensitive=false,
+    morecomment=[l][\color{greencomments}]{///},
+    morecomment=[l][\color{greencomments}]{//},
+    morecomment=[s][\color{greencomments}]{{(*}{*)}},
+    morestring=[b]",
+    breaklines=true,
+    stringstyle=\color{redstrings}
+    }
+
+\lstnewenvironment{fslisting}
+  {
+    \lstset{
+        language=FSharp,
+        basicstyle=\ttfamily,
+        breaklines=true,
+        columns=fullflexible}
+  }
+{}
+
+
+
+
+%Put this where you want the appendix to be
+\onecolumngrid
+\appendix
+\newpage
+\section{Simulation Code}
+
+% Must have code files. Put your actual directory here
+\lstinputlisting[language=FSharp]{Code/UnitsOfMeasure.fs}
+\lstinputlisting[language=FSharp]{Code/Main.fs}
+\lstinputlisting[language=FSharp]{Code/Material.fs}
+\lstinputlisting[language=FSharp]{Code/Parameters.fs}
+\lstinputlisting[language=FSharp]{Code/SimulationResult.fs}
+\lstinputlisting[language=FSharp]{Code/UnitsOfMeasure.fs}
+
+\begin{fslisting}
+\end{fslisting}
