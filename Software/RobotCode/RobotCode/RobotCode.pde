@@ -15,6 +15,25 @@
 #define MOTOR_SPEED 5
 #define SERVO_ANGLE 6
 
+// PIN DECLARATIONS
+// Motors
+#define LEFT_MOTOR_PIN 1
+#define RIGHT_MOTOR_PIN 2
+#define BRUSH_MOTOR_PIN 3
+#define SHOOTING_MOTOR_PIN 4
+// Analog Inputs
+#define LEFT_LASER_PIN 1
+#define RIGHT_LASER_PIN 2
+#define DETECTION_QRD_PIN 3
+// Digital Inputs
+#define LEFT_MICROSWITCH 14
+#define RIGHT_MICROSWITCH 13
+
+// Can't explicitly define servos
+// RC Servo 0 = ball loading
+// RC Servo 1 = left
+// RC Servo 2 = right
+
 // Knobs
 #define MENU_ADJUST_KNOB 6
 #define VALUE_ADJUST_KNOB 7
@@ -32,7 +51,7 @@ int itemCount = 7;
 
 // State tracking
 bool MENU = true;
-int lcdRefreshPeriod = 200; // Update LCD screen every n iterations. Larger = fewer updates. Smaller = flicker
+int lcdRefreshPeriod = 2000; // Update LCD screen every n iterations. Larger = fewer updates. Smaller = flicker
 int lcdRefreshCount = 0; // Current iteration. Do not change this value
 
 void setup()
@@ -73,6 +92,12 @@ void Update()
 	if(StopButton()) MENU = true;
 	if(StartButton()) MENU = false;
 	lcdRefreshCount = (lcdRefreshCount <= 0) ? lcdRefreshPeriod : (lcdRefreshCount - 1);
+	if(lcdRefreshCount == 0)
+	{ 
+		LCD.clear();
+		LCD.home();
+		LCD.print(analogRead(0));
+	}
 }
 
 void ProcessMenu()

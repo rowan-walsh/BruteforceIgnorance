@@ -16,8 +16,8 @@
 #define VALUE_ADJUST_KNOB 7
 #define LEFT_SENSOR 0
 #define RIGHT_SENSOR 1
-#define LEFT_MOTOR 1
-#define RIGHT_MOTOR 3
+#define LEFT_MOTOR 0
+#define RIGHT_MOTOR 1
 #define LEFT_LED 7
 #define RIGHT_LED 5
 #define ERROR_LED 6
@@ -44,10 +44,10 @@ bool rightDetected = false;
 
 // Tuning parameters. These are saved to EEPROM
 float speed = EEPROM.read(SPEED) * 4; // Max EEPROM value is 255. Multiplies by 4 to get up to ~1000 with fidelity tradeoff
-float proportionalGain = EEPROM.read(PROPORTIONAL_GAIN);
-float derivativeGain = EEPROM.read(DERIVATIVE_GAIN);
-float threshold = EEPROM.read(THRESHOLD) * 2;
-float perpendicular = EEPROM.read(PERPENDICULAR);
+float proportionalGain = EEPROM.read(PROPORTIONAL_GAIN) * 4;
+float derivativeGain = EEPROM.read(DERIVATIVE_GAIN) * 4;
+float threshold = EEPROM.read(THRESHOLD) * 4;
+float perpendicular = EEPROM.read(PERPENDICULAR) * 4;
 
 // State tracking
 bool MENU = true;
@@ -171,7 +171,7 @@ void ProcessMenu()
 {
 	motor.stop_all();
 	int debounceTime = 200;
-	int knobValue = knob(VALUE_ADJUST_KNOB) / 4;
+	int knobValue = knob(VALUE_ADJUST_KNOB);
 	LCD.clear(); LCD.setCursor(0,1);
 	LCD.print("Set to "); LCD.print(knobValue); LCD.print("?");
 	LCD.home();
@@ -183,7 +183,7 @@ void ProcessMenu()
 		LCD.print("Speed: ");
 		LCD.print(speed);
 		if (!StopButton(debounceTime)) break;
-		speed = knobValue * 4;
+		speed = knobValue ;
 		EEPROM.write(SPEED, speed / 4); // divide by four to prevent overflow (EEPROM max is 255)
 		break;
 	case PROPORTIONAL_GAIN:
@@ -191,14 +191,14 @@ void ProcessMenu()
 		LCD.print(proportionalGain);
 		if (!StopButton(debounceTime)) break;
 		proportionalGain = knobValue;
-		EEPROM.write(PROPORTIONAL_GAIN, proportionalGain);
+		EEPROM.write(PROPORTIONAL_GAIN, proportionalGain/4);
 		break;
 	case DERIVATIVE_GAIN:
 		LCD.print("D Gain: ");
 		LCD.print(derivativeGain);
 		if (!StopButton(debounceTime)) break;
 		derivativeGain = knobValue;
-		EEPROM.write(DERIVATIVE_GAIN, derivativeGain);
+		EEPROM.write(DERIVATIVE_GAIN, derivativeGain/4);
 		break;
 	case THRESHOLD:
 		LCD.print("TH: ");
@@ -208,22 +208,22 @@ void ProcessMenu()
 		LCD.print(" ");
 		LCD.print(right);
 		if (!StopButton(debounceTime)) break;
-		threshold = knobValue * 2;
-		EEPROM.write(THRESHOLD, threshold / 2);
+		threshold = knobValue;
+		EEPROM.write(THRESHOLD, threshold / 4);
 		break;
 	case PERPENDICULAR:
 		LCD.print("PERP: ");
 		LCD.print((int)perpendicular);
 		if (!StopButton(debounceTime)) break;
 		perpendicular = knobValue;
-		EEPROM.write(PERPENDICULAR, perpendicular);
+		EEPROM.write(PERPENDICULAR, perpendicular /4 );
 		break;
 	default:
 		LCD.print("PERP: ");
 		LCD.print((int)perpendicular);
 		if (!StopButton(debounceTime)) break;
 		perpendicular = knobValue;
-		EEPROM.write(PERPENDICULAR, perpendicular);
+		EEPROM.write(PERPENDICULAR, perpendicular / 4);
 		break;
 	}
 	delay(30); // Pauses to prevent screen flicker
