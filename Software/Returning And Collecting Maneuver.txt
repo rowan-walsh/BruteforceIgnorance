@@ -1,26 +1,33 @@
 Returning And Collecting
 ========================
 
-The 'returning and collecting' maneuver is triggered when the collection mechanism has been turning for at least X seconds since the robot last fired and the lifter QRD is NOT triggered.
 
-Note: the collection mechanism is run throughout all of this maneuver.
 
-Maneuver:
----------
+The 'return to collect' maneuver is triggered when the collection mechanism has been turning for at least X seconds since the robot last fired and the lifter QRD is NOT triggered.
+
+Return to Collect Maneuver
+--------------------------
+	(Collection motor is always on)
 	- Continue strafing (with wall following algorithm) in the same direction.  Target IR can be ignored, but collection mechanism should still be turning and the lifter QRD should be monitored.
 	- If the lifter QRD is triggered (accidental collection, etc.), cancel the return maneuver and go back to the strafe-fire maneuver.
 	- Strafe until a side touch sensor is triggered.
 	- Strafe in opposite direction for X seconds (until approx. between the side-most and center tape lines).
-
-	- Begin ignoring the lifter QRD input.  Continue turning collection mechanism but while line-following do not stop the maneuver if the lifter QRD is triggered.
+	- Begin ignoring the lifter QRD input.  Continue turning collection mechanism, but while line-following do not stop the maneuver if the lifter QRD is triggered.
 
 	- Convert to differential steering (turn servos to differential angles).
 	- Turn about 135 degrees (motors driven in opposite directions, for X seconds).  The robot should be pointing at an angle towards the center line of tape.
 		- If it was strafing left-to-right, turn 135 degrees clockwise.
 		- If it was strafing right-to-left, turn 135 degrees counter-clockwise.
 	- Drive forwards until either of the center tape sensors detect the tape.
+	- Follow the tape using the center tape sensors (PD algorithm) until either of the front touch sensors are triggered.  Begin 'collecting' maneuver.
 
-	- Follow the tape using the center tape sensors (PD algorithm) until either of the front touch sensors are triggered.
+
+
+The 'collecting' maneuver is triggered once the 'return to collect' maneuver reaches the collection wall at the end of the tape line.
+
+Collecting Maneuver
+-------------------
+	(Collection motor is always on)
 	- Slowly (50% speed) turn towards the triggered touch sensor until the other front touch sensor triggers as well.
 	- Wait X seconds.
 	- Back up straight a short ways (X seconds while motors are reversed).
@@ -28,4 +35,6 @@ Maneuver:
 	- Drive forwards until both front touch sensors are triggered again.
 	- Check if loading arm QRD has been triggered.
     	- If it has, loading is done: run the 'return to wall' maneuver.
-    	- If it has not been triggered, continue to briefly back up and then ram the wall at alternating angles until the loading QRD is triggered.
+    	- If it has not been triggered, repeatedly back up and ram the wall at alternating angles until the loading QRD is triggered.
+
+

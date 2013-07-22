@@ -1,0 +1,88 @@
+MANEUVERS
+=========
+
+
+These are the discrete maneuvers (in a rough order) that the robot will execute.
+
+
+
+The 'return to collect' maneuver is triggered when the collection mechanism has been turning for at least X seconds since the robot last fired and the lifter QRD is NOT triggered.
+
+Return to Collect Maneuver
+--------------------------
+	(Collection motor is always on)
+	- Continue strafing (with wall following algorithm) in the same direction.  Target IR can be ignored, but collection mechanism should still be turning and the lifter QRD should be monitored.
+	- If the lifter QRD is triggered (accidental collection, etc.), cancel the return maneuver and go back to the strafe-fire maneuver.
+	- Strafe until a side touch sensor is triggered.
+	- Strafe in opposite direction for X seconds (until approx. between the side-most and center tape lines).
+	- Begin ignoring the lifter QRD input.  Continue turning collection mechanism, but while line-following do not stop the maneuver if the lifter QRD is triggered.
+
+	- Convert to differential steering (turn servos to differential angles).
+	- Turn about 135 degrees (motors driven in opposite directions, for X seconds).  The robot should be pointing at an angle towards the center line of tape.
+		- If it was strafing left-to-right, turn 135 degrees clockwise.
+		- If it was strafing right-to-left, turn 135 degrees counter-clockwise.
+	- Drive forwards until either of the center tape sensors detect the tape.
+	- Follow the tape using the center tape sensors (PD algorithm) until either of the front touch sensors are triggered.  Begin 'collecting' maneuver.
+
+
+
+The 'collecting' maneuver is triggered once the 'return to collect' maneuver reaches the collection wall at the end of the tape line.
+
+Collecting Maneuver
+-------------------
+	(Collection motor is always on)
+	- Slowly (50% speed) turn towards the triggered touch sensor until the other front touch sensor triggers as well.
+	- Wait X seconds.
+	- Back up straight a short ways (X seconds while motors are reversed).
+	- Angle the robot slightly (about 5 degrees).
+	- Drive forwards until both front touch sensors are triggered again.
+	- Check if loading arm QRD has been triggered.
+    	- If it has, loading is done: run the 'return to wall' maneuver.
+    	- If it has not been triggered, repeatedly back up and ram the wall at alternating angles until the loading QRD is triggered.
+
+
+
+The 'return to wall' maneuver is triggered once balls have been successfully collected at the collection area.
+
+Return to Wall
+--------------
+	- Get servos to turn wheels until they are straight
+	- Reverse both wheels at same speed for x seconds
+	- Turn wheel motors in opposite directions to pivot robot 180o until tape detected with middle QRDs
+	- Use PID algorithm to drive forward following tape
+	- When both outer QRDs trigger (or other method of sensing T), drive directly forward until front touch sensors trigger. If one sensor triggers first, only turn wheel on opposite side to pivot robot until other touch sensor triggers
+	- Turn on lasers, reverse directly backwards until software threshold on laser QRDs is reached
+	- Stop, convert to bicycle mode (rotate wheel servos 90o in opposite directions)
+	- Begin wall following to the right
+
+
+
+The 'wall following' maneuver is where the robot spends most of its time.  It is triggered once the robot has collected at least one ball and is in position in front of the targets.
+
+Wall Following
+--------------
+	- Turn collection motor on (if it isn't already)
+	-Strafe sideways at constant distance from wall using wall following PID algorithm, while detecting for front mounted IR and side touch sensors
+	- When IR is detected:
+		- Stop strafing
+		- Execute 'firing' maneuver
+		- Continue strafing
+	- When a side wall is detected:
+		- Stop
+		- Reverse wall following direction
+
+
+
+Firing occurs once a target's IR beacon is found.
+
+Firing
+------
+	- Collection motor should be on.
+	- Start firing rotors (spin-up)
+	- If necessary, move short distance back along the wall until IR signal is strongest (to correct for stopping distance)
+	- (?) Adjust robot so parallel to wall using laser readings
+		- Turn robot until the laser readings are within X of each other's values.
+	- Lift loading servo to firing angle; check that lifter QRD goes off
+		- If QRD still on X seconds after reaching upper position (and IR still detected?), "shake" servo back and forth near top of range of motion
+		- After X attempts, give up and lower servo
+	- Wait with collection running for X seconds (possibly strafe in direction ball deflects) to collect the rebound.
