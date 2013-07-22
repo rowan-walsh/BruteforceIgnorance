@@ -52,9 +52,9 @@ void setup()
 	RCServo0.attach(RCServo0Output) ;
 	RCServo1.attach(RCServo1Output) ;
 	RCServo2.attach(RCServo2Output) ;
-        RCServo0.write(0);
-        RCServo1.write(0);
-        RCServo2.write(0);
+		RCServo0.write(0);
+		RCServo1.write(0);
+		RCServo2.write(0);
 }
 
 void loop()
