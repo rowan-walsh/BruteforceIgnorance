@@ -1,0 +1,20 @@
+NOTES
+=====
+
+EMPTY STATE:
+	Checked every loop:
+		Empty if the lifting arm is empty AND a certain delay has passed since last firing
+	Checked every target found:
+		Empty if lifting arm is empty
+
+	If the robot hits a wall while in the empty state, it begins the return to collection maneuver.
+
+
+STATE MACHINE:
+	Now keeps track of the current state (or 'looping maneuver').  Discrete maneuvers (like firing) are not kept track of, instead they are called by other looping maneuvers.
+
+	Menu is entered through Update(), when the stop button is pressed.
+	Menu is exited through Update(), when the start button is pressed.  Switches to the last state of the machine.
+
+STEERING SERVO ANGLES
+	Need to figure out what angle to use for servo steering (bike vs. perp).  Are the angles inverted between the two servos?
