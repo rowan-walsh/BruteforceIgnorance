@@ -112,11 +112,6 @@ void Update()
 	leftDetected = left > thresholdLeft;
 	rightDetected = right > thresholdRight;
 
-	// Updates the LED tape-detect indicators. Pin logic is inverted
-	//digitalWrite(LEFT_LED, !leftDetected);
-	//digitalWrite(RIGHT_LED, !rightDetected);
-	//digitalWrite(ERROR_LED, !((!leftDetected) && (!rightDetected)));
-
 	// Detects button presses and decrements the LCD counter
 	if(StopButton()) MENU = true;
 	if(StartButton()) MENU = false;
@@ -141,9 +136,10 @@ void ProcessMovement()
 		float leftDerivative = (float)(leftError - previousLeftError) * derivativeGain;
 		previousLeftError = leftError;
 
-		RCServo1.write(perpendicular - (leftProportional + leftDerivative));
-		RCServo2.write(perpendicular);
+		int compensationAngle = leftProportional + leftDerivative;
 
+		RCServo1.write(perpendicular - compensationAngle);
+		RCServo2.write(perpendicular + (compensationAngle / 2));
 	}
 	else if (direction == RIGHT)
 	{
@@ -152,8 +148,10 @@ void ProcessMovement()
 		float rightDerivative = (float)(rightError - previousRightError) * derivativeGain;
 		previousRightError = rightError;
 
-		RCServo1.write(perpendicular);
-		RCServo2.write(perpendicular + (rightProportional + rightDerivative));
+		int compensationAngle = rightProportional + rightDerivative;
+
+		RCServo1.write(perpendicular - (compensationAngle / 2));
+		RCServo2.write(perpendicular + compensationAngle);
 	}
 
 	if(lcdRefreshCount != 0) return;
