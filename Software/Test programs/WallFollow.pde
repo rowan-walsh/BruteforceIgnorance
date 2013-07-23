@@ -9,45 +9,36 @@
 #define PROPORTIONAL_GAIN 1
 #define DERIVATIVE_GAIN 2
 #define THRESHOLD 3
-#define PERPENDICULAR 4
 
 // Pin Definitions
 #define MENU_ADJUST_KNOB 6
 #define VALUE_ADJUST_KNOB 7
 #define LEFT_SENSOR 0
 #define RIGHT_SENSOR 1
-#define LEFT_MOTOR 0
-#define RIGHT_MOTOR 1
+#define LEFT_MOTOR 2
+#define RIGHT_MOTOR 3
 #define LEFT_LED 7
 #define RIGHT_LED 5
 #define ERROR_LED 6
-#define LEFT_BUMPER 9
-#define RIGHT_BUMPER 7
 
-// States
-#define TOO_CLOSE -1.0
-#define TOO_FAR 1.0
+// Tape States
+#define TOO_LEFT -1.0
+#define TOO_RIGHT 1.0
+#define OFF_TAPE 5.0
 
-// Directions
-#define LEFT -1
-#define RIGHT 1
-
-int direction = LEFT;
+// Sensor Values
 int left = 0;
-int right = 0;
-int previousLeftError = 0;
-int previousRightError = 0;
-int leftError = 0;
-int rightError = 0;
+int right = 0; 
+int previousError = 0;
+int error = 0;
 bool leftDetected = false;
 bool rightDetected = false;
 
 // Tuning parameters. These are saved to EEPROM
 float speed = EEPROM.read(SPEED) * 4; // Max EEPROM value is 255. Multiplies by 4 to get up to ~1000 with fidelity tradeoff
-float proportionalGain = EEPROM.read(PROPORTIONAL_GAIN) * 4;
-float derivativeGain = EEPROM.read(DERIVATIVE_GAIN) * 4;
-float threshold = EEPROM.read(THRESHOLD) * 4;
-float perpendicular = EEPROM.read(PERPENDICULAR) * 4;
+float proportionalGain = EEPROM.read(PROPORTIONAL_GAIN);
+float derivativeGain = EEPROM.read(DERIVATIVE_GAIN);
+float threshold = EEPROM.read(THRESHOLD);
 
 // State tracking
 bool MENU = true;
@@ -61,6 +52,9 @@ void setup()
 	RCServo0.attach(RCServo0Output) ;
 	RCServo1.attach(RCServo1Output) ;
 	RCServo2.attach(RCServo2Output) ;
+        RCServo0.write(0);
+        RCServo1.write(0);
+        RCServo2.write(0);
 }
 
 void loop()
@@ -88,21 +82,6 @@ bool StopButton(int debounceTime = 80)
 	return stopbutton();
 }
 
-// Determines if the bumper switch is being contacted
-bool LeftBumper(int debounceTime = 15)
-{
-	if(digitalRead(LEFT_BUMPER)) return false;
-	delay(debounceTime);
-	return !digitalRead(LEFT_BUMPER);
-}
-
-bool RightBumper(int debounceTime = 15)
-{
-	if(digitalRead(RIGHT_BUMPER)) return false;
-	delay(debounceTime);
-	return !digitalRead(RIGHT_BUMPER);
-}
-
 // Polls the inputs and obtains new sensor readings. 
 // Updates LED indicators and detects button presses
 void Update()
@@ -112,93 +91,73 @@ void Update()
 	right = analogRead(RIGHT_SENSOR);
 	leftDetected = left > threshold;
 	rightDetected = right > threshold;
-
+	
 	// Updates the LED tape-detect indicators. Pin logic is inverted
-	//digitalWrite(LEFT_LED, !leftDetected);
-	//digitalWrite(RIGHT_LED, !rightDetected);
-	//digitalWrite(ERROR_LED, !((!leftDetected) && (!rightDetected)));
-
+	digitalWrite(LEFT_LED, !leftDetected);
+	digitalWrite(RIGHT_LED, !rightDetected);
+	digitalWrite(ERROR_LED, !((!leftDetected) && (!rightDetected)));
+	
 	// Detects button presses and decrements the LCD counter
 	if(StopButton()) MENU = true;
 	if(StartButton()) MENU = false;
 	lcdRefreshCount = (lcdRefreshCount <= 0) ? lcdRefreshPeriod : (lcdRefreshCount - 1);
-
-	// Reverse direction if bumper pressed
-	if(LeftBumper()) direction = RIGHT;
-	else if (RightBumper()) direction = LEFT;
 }
 
 // Computes new PID values and calculates a new motor speed for
 // the left and right motors. Prints motor and sensor values to LCD.
 void ProcessMovement()
 {
-	motor.speed(LEFT_MOTOR, speed * direction);
-	motor.speed(RIGHT_MOTOR, speed * direction);
+	if (leftDetected && rightDetected) error = 0;
+	else if (!leftDetected && rightDetected) error = TOO_LEFT;
+	else if (leftDetected && !rightDetected) error = TOO_RIGHT;
+	else if (!leftDetected && !rightDetected) error = (previousError <= TOO_LEFT) ? -OFF_TAPE : OFF_TAPE;
+	
+	float proportional = (float)error * proportionalGain;
+	float derivative = (float)(error - previousError) * derivativeGain;
+	motor.speed(LEFT_MOTOR, speed + (proportional + derivative));
+	motor.speed(RIGHT_MOTOR, speed - (proportional + derivative));
+	previousError = error;
 
-	if (direction == LEFT) 
-	{
-		leftError = leftDetected ? TOO_CLOSE : TOO_FAR;
-		float leftProportional = (float)leftError * proportionalGain;
-		float leftDerivative = (float)(leftError - previousLeftError) * derivativeGain;
-		previousLeftError = leftError;
-
-		RCServo0.write(perpendicular - (leftProportional + leftDerivative));
-		RCServo1.write(perpendicular);
-
-	}
-	else if (direction == RIGHT)
-	{
-		rightError = rightDetected ? TOO_CLOSE : TOO_FAR;
-		float rightProportional = (float)rightError * proportionalGain;
-		float rightDerivative = (float)(rightError - previousRightError) * derivativeGain;
-		previousRightError = rightError;
-
-		RCServo0.write(perpendicular);
-		RCServo1.write(perpendicular + (rightProportional + rightDerivative));
-	}
-
-	if(lcdRefreshCount != 0) return;
+	if(lcdRefreshCount != 0) return; // Mitigates screen flicker
 	LCD.clear(); LCD.home();
 	LCD.print("L:"); LCD.print(left); LCD.print(" R:"); LCD.print(right); // Print sensor readings
 	LCD.setCursor(0, 1);
-	//LCD.print("L:"); LCD.print((int)perpendicular - (int)(leftProportional + leftDerivative));
-	//LCD.print(" R:"); LCD.print((int)perpendicular - (int)(rightProportional + rightDerivative));
-	LCD.print("Direction: "); LCD.print(direction == LEFT ? "LEFT" : "RIGHT");
+	LCD.print("L:"); LCD.print((int)speed - (int)(proportional + derivative));
+	LCD.print(" R:"); LCD.print((int)speed + (int)(proportional + derivative));
 }
 
 // Displays a tuning parameter on the LCD
 void ProcessMenu()
 {
 	motor.stop_all();
-	int debounceTime = 200;
-	int knobValue = knob(VALUE_ADJUST_KNOB);
+	int knobValue = knob(VALUE_ADJUST_KNOB) / 4;
 	LCD.clear(); LCD.setCursor(0,1);
 	LCD.print("Set to "); LCD.print(knobValue); LCD.print("?");
 	LCD.home();
 
-	int menuItem = knob(MENU_ADJUST_KNOB) / 200; // Divides by 256 to reduce possible values
+	int menuItem = knob(MENU_ADJUST_KNOB) / 256; // Divides by 256 to reduce possible values
 	switch (menuItem)
 	{
 	case SPEED:
 		LCD.print("Speed: ");
 		LCD.print(speed);
-		if (!StopButton(debounceTime)) break;
-		speed = knobValue ;
+		if (!StopButton()) break;
+		speed = knobValue * 4;
 		EEPROM.write(SPEED, speed / 4); // divide by four to prevent overflow (EEPROM max is 255)
 		break;
 	case PROPORTIONAL_GAIN:
 		LCD.print("P Gain: ");
 		LCD.print(proportionalGain);
-		if (!StopButton(debounceTime)) break;
+		if (!StopButton()) break;
 		proportionalGain = knobValue;
-		EEPROM.write(PROPORTIONAL_GAIN, proportionalGain/4);
+		EEPROM.write(PROPORTIONAL_GAIN, proportionalGain);
 		break;
 	case DERIVATIVE_GAIN:
 		LCD.print("D Gain: ");
 		LCD.print(derivativeGain);
-		if (!StopButton(debounceTime)) break;
+		if (!StopButton()) break;
 		derivativeGain = knobValue;
-		EEPROM.write(DERIVATIVE_GAIN, derivativeGain/4);
+		EEPROM.write(DERIVATIVE_GAIN, derivativeGain);
 		break;
 	case THRESHOLD:
 		LCD.print("TH: ");
@@ -207,23 +166,20 @@ void ProcessMenu()
 		LCD.print(left);
 		LCD.print(" ");
 		LCD.print(right);
-		if (!StopButton(debounceTime)) break;
+		if (!StopButton()) break;
 		threshold = knobValue;
-		EEPROM.write(THRESHOLD, threshold / 4);
+		EEPROM.write(THRESHOLD, threshold);
 		break;
-	case PERPENDICULAR:
-		LCD.print("PERP: ");
-		LCD.print((int)perpendicular);
-		if (!StopButton(debounceTime)) break;
-		perpendicular = knobValue;
-		EEPROM.write(PERPENDICULAR, perpendicular /4 );
-		break;
-	default:
-		LCD.print("PERP: ");
-		LCD.print((int)perpendicular);
-		if (!StopButton(debounceTime)) break;
-		perpendicular = knobValue;
-		EEPROM.write(PERPENDICULAR, perpendicular / 4);
+	default: // Selects threshold by default
+		LCD.print("TH: ");
+		LCD.print((int)threshold);
+		LCD.print(" ");
+		LCD.print(left);
+		LCD.print(" ");
+		LCD.print(right);
+		if (!StopButton()) break;
+		threshold = knobValue;
+		EEPROM.write(THRESHOLD, threshold);
 		break;
 	}
 	delay(30); // Pauses to prevent screen flicker

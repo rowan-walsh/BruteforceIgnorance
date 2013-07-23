@@ -33,11 +33,11 @@
 // Motors
 #define LEFT_MOTOR_PIN 1
 #define RIGHT_MOTOR_PIN 2
-#define BRUSH_MOTOR_PIN 3
-#define SHOOTING_MOTOR_PIN 4
+#define BRUSH_MOTOR_PIN 0
+#define SHOOTING_MOTOR_PIN 3
 // Analog Inputs
-#define LEFT_LASER_PIN 1
-#define RIGHT_LASER_PIN 2
+#define LEFT_LASER_PIN 0
+#define RIGHT_LASER_PIN 1
 #define COLLECT_QRD_PIN 3
 #define TARGET_DETECT_PIN 4
 // Digital Inputs
@@ -68,9 +68,9 @@ int strafeDirection = LEFT_DIRECTION;
 
 // MENU ITEMS (for the love of god, don't modify!)
 // Thresholds
-MenuItem laserThreshold = MenuItem("Laser TH", LASER_THRESHOLD);
-MenuItem targetThreshold = MenuItem("Target TH", TARGET_THRESHOLD);
-MenuItem ballCollectThreshold = MenuItem("Collect TH", BALL_COLLECT_THRESHOLD);
+MenuItem laserThreshold = MenuItem("LT", LASER_THRESHOLD);
+MenuItem targetThreshold = MenuItem("TTH", TARGET_THRESHOLD);
+MenuItem ballCollectThreshold = MenuItem("CTH", BALL_COLLECT_THRESHOLD);
 // Gain parameters
 MenuItem laserProportionalGain = MenuItem("L P-Gain", LASER_P_GAIN);
 MenuItem laserDerivativeGain = MenuItem("L D-Gain", LASER_D_GAIN);
@@ -98,7 +98,7 @@ int itemCount = 13;
 
 // State tracking
 bool MENU = true; // Changing this will load menu by default (true) or start running (false)
-int lcdRefreshPeriod = 2000; // Update LCD screen every n iterations. Larger = fewer updates. Smaller = flicker
+int lcdRefreshPeriod = 20; // Update LCD screen every n iterations. Larger = fewer updates. Smaller = flicker
 int lcdRefreshCount = 0; // Current iteration. Do not change this value
 
 void setup()
@@ -113,9 +113,15 @@ void setup()
 void loop()
 {	
 	Update();
+	
 	if (MENU) ProcessMenu();
-	else Run();
+	else 
+	{
+		WallFollowSensorUpdate();
+		WallFollow();
+	}
 }
+
 
 // Sets a specified angle to the given servo
 void SetServo(int servoIndex, int servoAngle)
@@ -171,11 +177,11 @@ void Update()
 	if(StopButton()) MENU = true;
 	if(StartButton()) MENU = false;
 	
-	// Microswitches
+/*	// Microswitches
 	leftFront = Microswitch(LEFT_FRONT_MICROSWITCH_PIN);
 	leftSide = Microswitch(LEFT_SIDE_MICROSWITCH_PIN);
 	rightFront = Microswitch(RIGHT_FRONT_MICROSWITCH_PIN);
-	rightSide = Microswitch(RIGHT_SIDE_MICROSWITCH_PIN);
+	rightSide = Microswitch(RIGHT_SIDE_MICROSWITCH_PIN);*/
 
 	// Update LCD counter (reduces screen flicker)
 	lcdRefreshCount = (lcdRefreshCount <= 0) ? lcdRefreshPeriod : (lcdRefreshCount - 1);
@@ -192,26 +198,33 @@ void SoftDelay(int milliseconds)
 void ProcessMenu()
 {
 	// Determine selected item and get knob values
-	motor.stop_all();
+	motor.stop(LEFT_MOTOR_PIN);
+	motor.stop(RIGHT_MOTOR_PIN);
+
 	int knobValue = knob(VALUE_ADJUST_KNOB);
-	int selectedItem = knob(MENU_ADJUST_KNOB) / (1024 / itemCount - 1);
+	int selectedItem = knob(MENU_ADJUST_KNOB) / (1024 / (itemCount - 1));
 	if (selectedItem > itemCount - 1) selectedItem = itemCount - 1; // Normalize the selection
 
 	// Display the item information
 	LCD.clear(); LCD.home();
-	LCD.print(items[selectedItem].Name() + " "); 
+	LCD.print(items[selectedItem].Name()); LCD.print(" "); 
 	LCD.print(items[selectedItem].Value());
+	
+	// Show laser threshold
+	if (selectedItem == LASER_THRESHOLD) 
+	{
+		LCD.print(" ");
+		LCD.print(analogRead(LEFT_LASER_PIN));	
+		LCD.print(" ");
+		LCD.print(analogRead(RIGHT_LASER_PIN));	
+	}
+	
 	LCD.setCursor(0,1);
 	LCD.print("Set to "); LCD.print(knobValue); LCD.print("?");
 	
 	// Check to see if user set value
 	if(StopButton(200)) items[selectedItem].SetValue(knobValue);
 	delay(50);
-}
-
-void Run()
-{
-
 }
 
 void WallFollowSensorUpdate()
@@ -244,7 +257,7 @@ void WallFollow()
 	SetServo(fixedServo, servoSteerAngle.Value());
 
 	// Show steering information on screen
-	if(lcdRefreshCount != 0) return;
+	if(lcdRefreshCount > 2) return;
 	LCD.clear(); LCD.home();
 	LCD.print("Steer ang:"); LCD.print(proportional + derivative);
 	LCD.setCursor(0, 1);
