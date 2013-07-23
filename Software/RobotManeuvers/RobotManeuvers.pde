@@ -25,26 +25,28 @@
 #define SERVO_COLLECT_ANGLE 11
 #define SERVO_STEER_ANGLE 12
 
+
 // PIN DECLARATIONS
 // Servo indices
 #define SERVO_BALL 0
 #define SERVO_LEFT 1
 #define SERVO_RIGHT 2
 // Motors
-#define LEFT_MOTOR_PIN 1
-#define RIGHT_MOTOR_PIN 2
-#define BRUSH_MOTOR_PIN 0
+#define LEFT_MOTOR_PIN 0
+#define RIGHT_MOTOR_PIN 1
+#define BRUSH_MOTOR_PIN 2
 #define SHOOTING_MOTOR_PIN 3
 // Analog Inputs
 #define LEFT_LASER_PIN 0
 #define RIGHT_LASER_PIN 1
-#define COLLECT_QRD_PIN 3
-#define TARGET_DETECT_PIN 4
+#define COLLECT_QRD_PIN 2
+#define TARGET_DETECT_LEFT_PIN 3
+#define TARGET_DETECT_RIGHT_PIN 4
 // Digital Inputs
-#define LEFT_SIDE_MICROSWITCH_PIN 14
-#define LEFT_FRONT_MICROSWITCH_PIN 13
-#define RIGHT_SIDE_MICROSWITCH_PIN 12
-#define RIGHT_FRONT_MICROSWITCH_PIN 11
+#define LEFT_SIDE_MICROSWITCH_PIN 9
+#define LEFT_FRONT_MICROSWITCH_PIN 10
+#define RIGHT_SIDE_MICROSWITCH_PIN 7
+#define RIGHT_FRONT_MICROSWITCH_PIN 8
 // Knobs
 #define MENU_ADJUST_KNOB 6	 // adjust selected menu item
 #define VALUE_ADJUST_KNOB 7	 // adjust item value
@@ -54,17 +56,31 @@
 #define TOO_CLOSE -1
 #define TOO_FAR 1
 
+
+// OTHER CONSTANTS
+// Delays
+#define LOAD_DELAY 250
+#define REBOUND_DELAY 2000
+#define EMPTY_DELAY 5000
+
+
+// VARIABLES
 // Microswitches
 bool leftSide = false;
 bool rightSide = false;
 bool leftFront = false;
 bool rightFront = false;
-
-// WALL FOLLOWING
+// Wall Following
 int laserProximity = TOO_CLOSE;
 int previousLaserProximity = TOO_FAR;
 int laserRawValue = 0;
 int strafeDirection = LEFT_DIRECTION;
+int timeOfLastFiring = 0;
+bool isEmpty = false;
+// Target Finding
+bool targetFound = false;
+int IRleftRawValue = 0;
+int IRrightRawValue = 0;
 
 // MENU ITEMS (for the love of god, don't modify!)
 // Thresholds
@@ -229,6 +245,9 @@ void ProcessMenu()
 
 void WallFollowSensorUpdate()
 {
+	// If lifter arm is empty and reloading delay has passed, set to empty-state
+	isEmpty = (analogRead(COLLECT_QRD_PIN) < BALL_COLLECT_THRESHOLD && millis()-timeOfLastFiring >= EMPTY_DELAY);
+
 	// Update laser sensor
 	int detectingLaser = (strafeDirection == LEFT_DIRECTION) ? LEFT_LASER_PIN : RIGHT_LASER_PIN;
 	laserRawValue = analogRead(detectingLaser);
@@ -237,10 +256,40 @@ void WallFollowSensorUpdate()
 	// Change direction if side microswitches are contacted
 	if (strafeDirection == LEFT_DIRECTION && leftSide) strafeDirection = RIGHT_DIRECTION;
 	if (strafeDirection == RIGHT_DIRECTION && rightSide) strafeDirection = LEFT_DIRECTION;
+
+	if(!isEmpty) // if we have balls, update IR sensors
+	{
+		// update IR sensor values (can be ignored if we are empty)
+		IRleftRawValue = analogRead(TARGET_DETECT_LEFT_PIN);
+	//  IRrightRawValue = analogRead(TARGET_DETECT_RIGHT_PIN);
+
+		// determine if a target has been found
+		targetFound = (IRleftRawValue > TARGET_THRESHOLD);
+	}
+	else
+	{
+		targetFound = false;
+	}
 }
 
 void WallFollow()
 {
+	if(targetFound)
+	{
+		motor.stop(LEFT_MOTOR_PIN);
+		motor.stop(RIGHT_MOTOR_PIN);
+
+		LCD.clear(); LCD.home();
+		LCD.print("Firing!");
+
+		Firing();
+
+		targetFound = false;
+	}
+
+	// Collection motor should be ON
+	motor.speed(BRUSH_MOTOR_PIN, BRUSH_SPEED);
+
 	// Set motors to correct speed and direction
 	motor.speed(LEFT_MOTOR_PIN, MOTOR_SPEED * strafeDirection);
 	motor.speed(RIGHT_MOTOR_PIN, MOTOR_SPEED * strafeDirection);
@@ -262,4 +311,44 @@ void WallFollow()
 	LCD.print("Steer ang:"); LCD.print(proportional + derivative);
 	LCD.setCursor(0, 1);
 	LCD.print("Direction: "); LCD.print(strafeDirection == LEFT_DIRECTION ? "LEFT" : "RIGHT");
+}
+
+void Firing()
+{
+	// Check if lifter arm is empty
+	if(COLLECT_QRD_PIN) < BALL_COLLECT_THRESHOLD)
+	{
+		isEmpty = false;
+		return;
+	}
+
+	// Collection motor should be ON
+	motor.speed(BRUSH_MOTOR_PIN, BRUSH_SPEED);
+
+	// Start firing rotors (spin-up)
+	motor.speed(SHOOTING_MOTOR_PIN, FIRING_SPEED);
+
+	// If necessary, move short distance back along the wall until IR signal is strongest (to correct for stopping distance)
+	// 		Adjust robot so parallel to wall using laser readings
+	// 			Turn robot until the laser readings are within X of each other's values.
+
+	// Lift loading servo to firing angle; check that lifter QRD goes off
+	SetServo(SERVO_BALL, SERVO_LOAD_ANGLE);
+	
+	// Wait for servo to reach loading angle
+	delay(LOAD_DELAY);
+
+	// Check if loading servo arm is empty
+	if(analogRead(COLLECT_QRD_PIN) < BALL_COLLECT_THRESHOLD);
+	// DOES NOTHING ATM, might not be necessary
+
+	// Put servo back to collecting angle
+	SetServo(SERVO_BALL, SERVO_COLLECT_ANGLE);
+
+	// Stop firing rotor motor
+	motor.stop(BRUSH_MOTOR_PIN);
+
+	// Wait with collection running for X seconds (possibly strafe in direction ball deflects) to collect the rebound.
+	delay(REBOUND_DELAY);
+	timeOfLastFiring = millis(); // Reset counter
 }
