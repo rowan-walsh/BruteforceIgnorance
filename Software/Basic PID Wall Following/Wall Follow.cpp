@@ -8,8 +8,9 @@
 #define SPEED 0
 #define PROPORTIONAL_GAIN 1
 #define DERIVATIVE_GAIN 2
-#define THRESHOLD 3
-#define PERPENDICULAR 4
+#define THRESHOLD_LEFT 3
+#define THRESHOLD_RIGHT 4
+#define PERPENDICULAR 5
 
 // Pin Definitions
 #define MENU_ADJUST_KNOB 6
@@ -18,19 +19,16 @@
 #define RIGHT_SENSOR 1
 #define LEFT_MOTOR 0
 #define RIGHT_MOTOR 1
-#define LEFT_LED 7
-#define RIGHT_LED 5
-#define ERROR_LED 6
-#define LEFT_BUMPER 9
-#define RIGHT_BUMPER 7
+#define LEFT_BUMPER 13
+#define RIGHT_BUMPER 15
 
 // States
-#define TOO_CLOSE -1.0
-#define TOO_FAR 1.0
+#define TOO_CLOSE 1.0
+#define TOO_FAR -1.0
 
 // Directions
-#define LEFT -1
-#define RIGHT 1
+#define LEFT 1
+#define RIGHT -1
 
 int direction = LEFT;
 int left = 0;
@@ -46,7 +44,8 @@ bool rightDetected = false;
 float speed = EEPROM.read(SPEED) * 4; // Max EEPROM value is 255. Multiplies by 4 to get up to ~1000 with fidelity tradeoff
 float proportionalGain = EEPROM.read(PROPORTIONAL_GAIN) * 4;
 float derivativeGain = EEPROM.read(DERIVATIVE_GAIN) * 4;
-float threshold = EEPROM.read(THRESHOLD) * 4;
+float thresholdLeft = EEPROM.read(THRESHOLD_LEFT) * 4;
+float thresholdRight = EEPROM.read(THRESHOLD_RIGHT) * 4;
 float perpendicular = EEPROM.read(PERPENDICULAR) * 4;
 
 // State tracking
@@ -110,8 +109,8 @@ void Update()
 	// Gets new sensor readings
 	left = analogRead(LEFT_SENSOR);
 	right = analogRead(RIGHT_SENSOR);
-	leftDetected = left > threshold;
-	rightDetected = right > threshold;
+	leftDetected = left > thresholdLeft;
+	rightDetected = right > thresholdRight;
 
 	// Updates the LED tape-detect indicators. Pin logic is inverted
 	//digitalWrite(LEFT_LED, !leftDetected);
@@ -142,8 +141,8 @@ void ProcessMovement()
 		float leftDerivative = (float)(leftError - previousLeftError) * derivativeGain;
 		previousLeftError = leftError;
 
-		RCServo0.write(perpendicular - (leftProportional + leftDerivative));
-		RCServo1.write(perpendicular);
+		RCServo1.write(perpendicular - (leftProportional + leftDerivative));
+		RCServo2.write(perpendicular);
 
 	}
 	else if (direction == RIGHT)
@@ -153,8 +152,8 @@ void ProcessMovement()
 		float rightDerivative = (float)(rightError - previousRightError) * derivativeGain;
 		previousRightError = rightError;
 
-		RCServo0.write(perpendicular);
-		RCServo1.write(perpendicular + (rightProportional + rightDerivative));
+		RCServo1.write(perpendicular);
+		RCServo2.write(perpendicular + (rightProportional + rightDerivative));
 	}
 
 	if(lcdRefreshCount != 0) return;
@@ -200,16 +199,23 @@ void ProcessMenu()
 		derivativeGain = knobValue;
 		EEPROM.write(DERIVATIVE_GAIN, derivativeGain/4);
 		break;
-	case THRESHOLD:
-		LCD.print("TH: ");
-		LCD.print((int)threshold);
+	case THRESHOLD_LEFT:
+		LCD.print("TH L: ");
+		LCD.print((int)thresholdLeft);
 		LCD.print(" ");
 		LCD.print(left);
+		if (!StopButton(debounceTime)) break;
+		thresholdLeft = knobValue;
+		EEPROM.write(THRESHOLD_LEFT, thresholdLeft / 4);
+		break;
+	case THRESHOLD_RIGHT:
+		LCD.print("TH R: ");
+		LCD.print((int)thresholdRight);
 		LCD.print(" ");
 		LCD.print(right);
 		if (!StopButton(debounceTime)) break;
-		threshold = knobValue;
-		EEPROM.write(THRESHOLD, threshold / 4);
+		thresholdRight = knobValue;
+		EEPROM.write(THRESHOLD_RIGHT, thresholdRight / 4);
 		break;
 	case PERPENDICULAR:
 		LCD.print("PERP: ");
