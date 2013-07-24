@@ -36,6 +36,7 @@ int direction = LEFT;
 int left = 0;
 int right = 0;
 int previousError = 0;
+int deriveCount = 1;
 float integral = 0.0;
 int error = 0;
 bool leftDetected = false;
@@ -152,9 +153,14 @@ void ProcessMovement()
 	
 	// PID calculations
 	float proportional = (float)error * proportionalGain;
-	float derivative = (float)(error - previousError) * derivativeGain;
+	float derivative = (float)(error - previousError) / (float)deriveCount * derivativeGain;
 	int compensationAngle = proportional + integral + derivative;
-	previousError = error;
+	if(previousError != error)
+	{
+		previousError = error;
+		deriveCount = 1;
+	}
+	else deriveCount++;
 
 	// Set new servo angles
 	if (direction == LEFT)
