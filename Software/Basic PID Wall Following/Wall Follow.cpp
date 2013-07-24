@@ -12,6 +12,7 @@
 #define THRESHOLD_LEFT 4
 #define THRESHOLD_RIGHT 5
 #define PERPENDICULAR 6
+#define TURN_COMPENSATION 7
 
 // Pin Definitions
 #define MENU_ADJUST_KNOB 6
@@ -40,6 +41,9 @@ int error = 0;
 bool leftDetected = false;
 bool rightDetected = false;
 
+int integralOffsetPeriod = 50;
+int integralOffsetCounter = integralOffsetPeriod;
+
 // Tuning parameters. These are saved to EEPROM
 float speed = EEPROM.read(SPEED) * 4; // Max EEPROM value is 255. Multiplies by 4 to get up to ~1000 with fidelity tradeoff
 float proportionalGain = EEPROM.read(PROPORTIONAL_GAIN) * 4;
@@ -48,6 +52,8 @@ float integralGain = EEPROM.read(INTEGRAL_GAIN) * 4;
 float thresholdLeft = EEPROM.read(THRESHOLD_LEFT) * 4;
 float thresholdRight = EEPROM.read(THRESHOLD_RIGHT) * 4;
 float perpendicular = EEPROM.read(PERPENDICULAR) * 4;
+float turnCompensationGain = EEPROM.read(TURN_COMPENSATION) * 4;
+float boostAngle = 5.0;
 
 // State tracking
 bool MENU = true;
@@ -110,8 +116,8 @@ void Update()
 	// Gets new sensor readings
 	left = analogRead(LEFT_SENSOR);
 	right = analogRead(RIGHT_SENSOR);
-	leftDetected = left > thresholdLeft;
-	rightDetected = right > thresholdRight;
+	leftDetected = left < thresholdLeft;
+	rightDetected = right < thresholdRight;
 
 	// Detects button presses and decrements the LCD counter
 	if(StopButton()) MENU = true;
@@ -123,14 +129,12 @@ void Update()
 	else if (RightBumper()) direction = LEFT;
 }
 
-int integralOffsetPeriod = 100;
-int integralOffsetCounter = integralOffsetPeriod;
+
 // Computes new PID values and calculates a new motor speed for
 // the left and right motors. Prints motor and sensor values to LCD.
 void ProcessMovement()
 {
-	motor.speed(LEFT_MOTOR, speed * direction);
-	motor.speed(RIGHT_MOTOR, speed * direction);
+
 
 	// Determine the error for correct direction
 	if (direction == LEFT) error = leftDetected ? TOO_CLOSE : TOO_FAR;
@@ -143,26 +147,34 @@ void ProcessMovement()
 		integralOffsetCounter = integralOffsetPeriod;
 	}
 	else integralOffsetCounter--;
-
 	if (integral > 25.0) integral = 25.0;
 	else if (integral < -25.0) integral = -25.0;
 	
+	// PID calculations
 	float proportional = (float)error * proportionalGain;
 	float derivative = (float)(error - previousError) * derivativeGain;
-	previousError = error;
 	int compensationAngle = proportional + integral + derivative;
+	previousError = error;
 
+	// Set new servo angles
 	if (direction == LEFT)
 	{
 		RCServo1.write(perpendicular - compensationAngle);
-		RCServo2.write(perpendicular);
+		RCServo2.write(perpendicular + boostAngle);
 	}
 	else
 	{
-		RCServo1.write(perpendicular);
+		RCServo1.write(perpendicular - boostAngle);
 		RCServo2.write(perpendicular + compensationAngle);
 	}
 
+	// Compute turning speed compensation
+	int turnCompensation = abs(compensationAngle) * turnCompensationGain * direction;
+
+	motor.speed(LEFT_MOTOR, (speed * direction) + turnCompensation);
+	motor.speed(RIGHT_MOTOR, (speed * direction) + turnCompensation);
+
+	// Draw data on screen
 	if(lcdRefreshCount != 0) return;
 	LCD.clear(); LCD.home();
 	LCD.print("L:"); LCD.print(left); LCD.print(" R:"); LCD.print(right); // Print sensor readings
@@ -235,6 +247,13 @@ void ProcessMenu()
 		if (!StopButton(debounceTime)) break;
 		perpendicular = knobValue;
 		EEPROM.write(PERPENDICULAR, perpendicular /4 );
+		break;
+		case TURN_COMPENSATION:
+		LCD.print("COMP: ");
+		LCD.print((int)turnCompensationGain);
+		if (!StopButton(debounceTime)) break;
+		turnCompensationGain = knobValue;
+		EEPROM.write(TURN_COMPENSATION, turnCompensationGain /4 );
 		break;
 		default:
 		LCD.print("PERP: ");
