@@ -8,9 +8,10 @@
 #define SPEED 0
 #define PROPORTIONAL_GAIN 1
 #define DERIVATIVE_GAIN 2
-#define THRESHOLD_LEFT 3
-#define THRESHOLD_RIGHT 4
-#define PERPENDICULAR 5
+#define INTEGRAL_GAIN 3
+#define THRESHOLD_LEFT 4
+#define THRESHOLD_RIGHT 5
+#define PERPENDICULAR 6
 
 // Pin Definitions
 #define MENU_ADJUST_KNOB 6
@@ -33,10 +34,9 @@
 int direction = LEFT;
 int left = 0;
 int right = 0;
-int previousLeftError = 0;
-int previousRightError = 0;
-int leftError = 0;
-int rightError = 0;
+int previousError = 0;
+float integral = 0.0;
+int error = 0;
 bool leftDetected = false;
 bool rightDetected = false;
 
@@ -44,6 +44,7 @@ bool rightDetected = false;
 float speed = EEPROM.read(SPEED) * 4; // Max EEPROM value is 255. Multiplies by 4 to get up to ~1000 with fidelity tradeoff
 float proportionalGain = EEPROM.read(PROPORTIONAL_GAIN) * 4;
 float derivativeGain = EEPROM.read(DERIVATIVE_GAIN) * 4;
+float integralGain = EEPROM.read(INTEGRAL_GAIN) * 4;
 float thresholdLeft = EEPROM.read(THRESHOLD_LEFT) * 4;
 float thresholdRight = EEPROM.read(THRESHOLD_RIGHT) * 4;
 float perpendicular = EEPROM.read(PERPENDICULAR) * 4;
@@ -122,6 +123,8 @@ void Update()
 	else if (RightBumper()) direction = LEFT;
 }
 
+int integralOffsetPeriod = 100;
+int integralOffsetCounter = integralOffsetPeriod;
 // Computes new PID values and calculates a new motor speed for
 // the left and right motors. Prints motor and sensor values to LCD.
 void ProcessMovement()
@@ -129,28 +132,34 @@ void ProcessMovement()
 	motor.speed(LEFT_MOTOR, speed * direction);
 	motor.speed(RIGHT_MOTOR, speed * direction);
 
-	if (direction == LEFT) 
+	// Determine the error for correct direction
+	if (direction == LEFT) error = leftDetected ? TOO_CLOSE : TOO_FAR;
+	else if (direction == RIGHT) error = rightDetected ? TOO_CLOSE : TOO_FAR;
+
+	// Integral calculations
+	if (integralOffsetCounter < 0)
 	{
-		leftError = leftDetected ? TOO_CLOSE : TOO_FAR;
-		float leftProportional = (float)leftError * proportionalGain;
-		float leftDerivative = (float)(leftError - previousLeftError) * derivativeGain;
-		previousLeftError = leftError;
-
-		int compensationAngle = leftProportional + leftDerivative;
-
-		RCServo1.write(perpendicular - compensationAngle);
-		RCServo2.write(perpendicular + (compensationAngle / 2));
+		integral += error * integralGain;
+		integralOffsetCounter = integralOffsetPeriod;
 	}
-	else if (direction == RIGHT)
+	else integralOffsetCounter--;
+
+	if (integral > 25.0) integral = 25.0;
+	else if (integral < -25.0) integral = -25.0;
+	
+	float proportional = (float)error * proportionalGain;
+	float derivative = (float)(error - previousError) * derivativeGain;
+	previousError = error;
+	int compensationAngle = proportional + integral + derivative;
+
+	if (direction == LEFT)
 	{
-		rightError = rightDetected ? TOO_CLOSE : TOO_FAR;
-		float rightProportional = (float)rightError * proportionalGain;
-		float rightDerivative = (float)(rightError - previousRightError) * derivativeGain;
-		previousRightError = rightError;
-
-		int compensationAngle = rightProportional + rightDerivative;
-
-		RCServo1.write(perpendicular - (compensationAngle / 2));
+		RCServo1.write(perpendicular - compensationAngle);
+		RCServo2.write(perpendicular);
+	}
+	else
+	{
+		RCServo1.write(perpendicular);
 		RCServo2.write(perpendicular + compensationAngle);
 	}
 
@@ -158,8 +167,6 @@ void ProcessMovement()
 	LCD.clear(); LCD.home();
 	LCD.print("L:"); LCD.print(left); LCD.print(" R:"); LCD.print(right); // Print sensor readings
 	LCD.setCursor(0, 1);
-	//LCD.print("L:"); LCD.print((int)perpendicular - (int)(leftProportional + leftDerivative));
-	//LCD.print(" R:"); LCD.print((int)perpendicular - (int)(rightProportional + rightDerivative));
 	LCD.print("Direction: "); LCD.print(direction == LEFT ? "LEFT" : "RIGHT");
 }
 
@@ -173,31 +180,38 @@ void ProcessMenu()
 	LCD.print("Set to "); LCD.print(knobValue); LCD.print("?");
 	LCD.home();
 
-	int menuItem = knob(MENU_ADJUST_KNOB) / 200; // Divides by 256 to reduce possible values
+	int menuItem = knob(MENU_ADJUST_KNOB) / 100; // Divides by 1 to reduce possible values to something like 10
 	switch (menuItem)
 	{
-	case SPEED:
+		case SPEED:
 		LCD.print("Speed: ");
 		LCD.print(speed);
 		if (!StopButton(debounceTime)) break;
 		speed = knobValue ;
 		EEPROM.write(SPEED, speed / 4); // divide by four to prevent overflow (EEPROM max is 255)
 		break;
-	case PROPORTIONAL_GAIN:
+		case PROPORTIONAL_GAIN:
 		LCD.print("P Gain: ");
 		LCD.print(proportionalGain);
 		if (!StopButton(debounceTime)) break;
 		proportionalGain = knobValue;
 		EEPROM.write(PROPORTIONAL_GAIN, proportionalGain/4);
 		break;
-	case DERIVATIVE_GAIN:
+		case DERIVATIVE_GAIN:
 		LCD.print("D Gain: ");
 		LCD.print(derivativeGain);
 		if (!StopButton(debounceTime)) break;
 		derivativeGain = knobValue;
 		EEPROM.write(DERIVATIVE_GAIN, derivativeGain/4);
 		break;
-	case THRESHOLD_LEFT:
+		case INTEGRAL_GAIN:
+		LCD.print("I Gain: ");
+		LCD.print(integralGain);
+		if (!StopButton(debounceTime)) break;
+		integralGain = knobValue;
+		EEPROM.write(INTEGRAL_GAIN, integralGain/4);
+		break;
+		case THRESHOLD_LEFT:
 		LCD.print("TH L: ");
 		LCD.print((int)thresholdLeft);
 		LCD.print(" ");
@@ -206,7 +220,7 @@ void ProcessMenu()
 		thresholdLeft = knobValue;
 		EEPROM.write(THRESHOLD_LEFT, thresholdLeft / 4);
 		break;
-	case THRESHOLD_RIGHT:
+		case THRESHOLD_RIGHT:
 		LCD.print("TH R: ");
 		LCD.print((int)thresholdRight);
 		LCD.print(" ");
@@ -215,14 +229,14 @@ void ProcessMenu()
 		thresholdRight = knobValue;
 		EEPROM.write(THRESHOLD_RIGHT, thresholdRight / 4);
 		break;
-	case PERPENDICULAR:
+		case PERPENDICULAR:
 		LCD.print("PERP: ");
 		LCD.print((int)perpendicular);
 		if (!StopButton(debounceTime)) break;
 		perpendicular = knobValue;
 		EEPROM.write(PERPENDICULAR, perpendicular /4 );
 		break;
-	default:
+		default:
 		LCD.print("PERP: ");
 		LCD.print((int)perpendicular);
 		if (!StopButton(debounceTime)) break;
