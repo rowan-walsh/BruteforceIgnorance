@@ -67,6 +67,9 @@
 #define LEFT_DIFF_MULT 1
 #define RIGHT_DIFF_MULT -1
 #define DIFF_REVERSE -1
+#define TOO_LEFT -1.0
+#define TOO_RIGHT 1.0
+#define OFF_TAPE 5.0
 
 
 // OTHER CONSTANTS
@@ -101,16 +104,21 @@ bool leftSide = false;
 bool rightSide = false;
 bool leftFront = false;
 bool rightFront = false;
+// QRD's
+int qrdOuterLeft = 0;
+int qrdInnerLeft = 0;
+int qrdInnerRight = 0;
+int qrdOuterRight = 0;
 // Wall Following
-	// PID Algorithm
-int laserProximity = TOO_CLOSE;
-int previousLaserProximity = TOO_FAR;
+// --- PID Algorithm
+int laserError = TOO_CLOSE;
+int laserPreviousError = TOO_FAR;
 int laserRawValue = 0;
 int strafeDirection = LEFT_DIRECTION;
 float integral = 0.0;
 int integralOffsetPeriod = 100;
 int integralOffsetCounter = integralOffsetPeriod;
-	// Loading
+// --- Ball Handling
 unsigned long timeOfLastFiring = 0;
 bool isEmpty = false;
 unsigned long endingWallFollowCounter = 0;
@@ -119,10 +127,10 @@ bool targetFound = false;
 int IRleftRawValue = 0;
 int IRrightRawValue = 0;
 // Tape Following
-int qrdOuterLeftRawValue = 0;
-int qrdInnerLeftRawValue = 0;
-int qrdInnerRightRawValue = 0;
-int qrdOuterRightRawValue = 0;
+bool qrdInnerLeftDetected = false;
+bool qrdInnerRightDetected = false;
+int qrdError = 0;
+int qrdPreviousError = 0;
 bool endFound = false;
 // Collection
 
@@ -339,7 +347,7 @@ void WallFollowSensorUpdate() // Update - Wall following
 	// Update laser sensor, determine error
 	int detectingLaser = (strafeDirection == LEFT_DIRECTION) ? LEFT_LASER_PIN : RIGHT_LASER_PIN;
 	laserRawValue = analogRead(detectingLaser);
-	laserProximity = (laserRawValue < laserThreshold.Value()) ? TOO_CLOSE : TOO_FAR;
+	laserError = (laserRawValue < laserThreshold.Value()) ? TOO_CLOSE : TOO_FAR;
 
 	// Change direction if side microswitches are contacted
 	// If the robot is in the empty state, it begins to exit the wall-follow maneuver
@@ -359,7 +367,7 @@ void WallFollowSensorUpdate() // Update - Wall following
 	{
 		// Update IR sensor values (can be ignored if we are empty)
 		IRleftRawValue = analogRead(TARGET_DETECT_LEFT_PIN);
-//		IRrightRawValue = analogRead(TARGET_DETECT_RIGHT_PIN);
+	//		IRrightRawValue = analogRead(TARGET_DETECT_RIGHT_PIN);
 
 		// Determine if a target has been found
 		targetFound = (IRleftRawValue > targetThreshold.Value());
@@ -400,17 +408,17 @@ void WallFollow() // Looping maneuver
 	motor.speed(RIGHT_MOTOR_PIN, BIKE_SPEED * strafeDirection);
 
 	// Compute PID correction
-	float proportional = (float)laserProximity * laserProportionalGain.Value();
+	float proportional = (float)laserError * laserProportionalGain.Value();
 	if (integralOffsetCounter < 0)
 	{
-		integral += laserProximity * laserIntegralGain.Value();
+		integral += laserError * laserIntegralGain.Value();
 		integralOffsetCounter = integralOffsetPeriod;
 	}
 	else integralOffsetCounter--;
 	if (integral > 25.0) integral = 25.0;
 	else if (integral < -25.0) integral = -25.0;
-	float derivative = (float)(laserProximity - previousLaserProximity) * laserDerivativeGain.Value();
-	previousLaserProximity = laserProximity;
+	float derivative = (float)(laserError - laserPreviousError) * laserDerivativeGain.Value();
+	laserPreviousError = laserError;
 	
 	int compensationAngle = proportional + integral + derivative;
 	
@@ -431,14 +439,13 @@ void WallFollow() // Looping maneuver
 	SetServo(steeringServo, servoBikeAngle.Value() - compensationAngle);
 	SetServo(fixedServo, servoBikeAngle.Value());
 
-
 	// Show steering information on screen
 	if(lcdRefreshCount <= 2)
 	{
 		Reset();
-		Print("Steer ang:", proportional + derivative);
+		Print("Steer ang:", compensationAngle);
 		LCD.setCursor(0, 1);
-		Print("Direction: "); Print(strafeDirection == LEFT_DIRECTION ? "LEFT" : "RIGHT");
+		Print("Direction: "); Print(strafeDirection == (LEFT_DIRECTION) ? "LEFT" : "RIGHT");
 	}
 }
 
@@ -537,18 +544,36 @@ void AcquireTapeFromWall() // Discrete maneuver
 
 	do
 	{
-		qrdInnerLeftRawValue = analogRead(INNER_LEFT_QRD_PIN);
-		qrdInnerRightRawValue = analogRead(INNER_RIGHT_QRD_PIN);
+		qrdInnerLeft = analogRead(INNER_LEFT_QRD_PIN);
+		qrdInnerRight = analogRead(INNER_RIGHT_QRD_PIN);
 	}
-	while(qrdInnerLeftRawValue < qrdThreshold.Value() && qrdInnerRightRawValue < qrdThreshold.Value());
+	while(qrdInnerLeft < qrdThreshold.Value() && qrdInnerRight < qrdThreshold.Value());
 }
 
 void FollowTapeSensorUpdate(int followDirection) // Update - Following tape
 {
-	// Line following sensor stuff
+	// Check if end has been found
+	if(followDirection == FOLLOW_UP_DIRECTION)
+	{
+		qrdOuterLeft = digitalRead(OUTER_LEFT_QRD_PIN);
+		qrdOuterRight = digitalRead(OUTER_RIGHT_QRD_PIN);
+		endFound = (qrdOuterLeft > qrdThreshold || qrdOuterRight > qrdThreshold);
+	}
+	else if(followDirection == FOLLOW_DOWN_DIRECTION)
+	{
+		leftFront = Microswitch(LEFT_FRONT_MICROSWITCH_PIN);
+		rightFront = Microswitch(RIGHT_FRONT_MICROSWITCH_PIN);
+		endFound = (leftFront || rightFront);
+	}
 
-	// Check if end has been found (set endFound)
-		// Depends on followDirection
+	if(!endFound)	// Only check line-following stuff if not at the end
+	{
+		qrdInnerLeft = digitalRead(INNER_LEFT_QRD_PIN);
+		qrdInnerRight = digitalRead(INNER_RIGHT_QRD_PIN);
+
+		qrdInnerLeftDetected = (qrdInnerLeft > qrdThreshold);
+		qrdInnerRightDetected = (qrdInnerRight > qrdThreshold);
+	}
 }
 
 void FollowTape(int followDirection) // Looping maneuver
@@ -557,6 +582,7 @@ void FollowTape(int followDirection) // Looping maneuver
 
 	// If the end has been found,
 	if(endFound)
+	{
 		if(followDirection == FOLLOW_UP_DIRECTION) 			// while following tape up,
 		{
 			AcquireWallFromTape();								// find the front wall (cross tape-less gap)
@@ -571,8 +597,33 @@ void FollowTape(int followDirection) // Looping maneuver
 			endFound = false;
 			return;
 		}
+	}
 
-	// Line following stuff (motors)
+	// Determine error
+	if(qrdInnerLeftDetected && qrdInnerRightDetected)
+		qrdError = 0;
+	else if(!qrdInnerLeftDetected && qrdInnerRightDetected)
+		qrdError = TOO_LEFT;
+	else if(qrdInnerLeftDetected && !qrdInnerRightDetected)
+		qrdError = TOO_RIGHT;
+	else if(!qrdInnerLeftDetected && !qrdInnerRightDetected)
+		qrdError = (qrdPreviousError <= TOO_LEFT) ? -1*OFF_TAPE : OFF_TAPE;
+
+	float proportional = (float)qrdError * qrdProportionalGain;
+	float derivative = (float)qrdError * qrdDerivativeGain;
+	float compensationSpeed = proportional + derivative;
+	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * (diffSpeed.Value() + compensationSpeed));
+	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * (diffSpeed.Value() + compensationSpeed));
+	qrdPreviousError = qrdError;
+
+	// Show steering information on screen
+	if(lcdRefreshCount <= 2)
+	{
+		Reset();
+		Print("Steer speed:", compensationSpeed);
+		LCD.setCursor(0, 1);
+		Print("Error: ", qrdError);
+	}
 }
 
 // Turns the robot until both front touch sensors are in contact with the wall
@@ -595,7 +646,7 @@ void SquareTouch() // Discrete maneuver
 		if(leftFront) motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * diffSpeed.Value());
 		if(rightFront) motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * diffSpeed.Value());
 	}
-	while(!leftFront || !rightFront); // as long as BOTH switches are not triggered
+	while(!leftFront && !rightFront); // as long as BOTH switches are not triggered
 }
 
 void CollectionSensorUpdate() // Update - collection
@@ -675,10 +726,10 @@ void AcquireTapeFromCollect() // Discrete maneuver
 	// Keep spinning until tape is detected
 	do
 	{
-		qrdInnerLeftRawValue = analogRead(INNER_LEFT_QRD_PIN);
-		qrdInnerRightRawValue = analogRead(INNER_RIGHT_QRD_PIN);
+		qrdInnerLeft = analogRead(INNER_LEFT_QRD_PIN);
+		qrdInnerRight = analogRead(INNER_RIGHT_QRD_PIN);
 	}
-	while(qrdInnerLeftRawValue < qrdThreshold.Value() && qrdInnerRightRawValue < qrdThreshold.Value());
+	while(qrdInnerLeft < qrdThreshold.Value() && qrdInnerRight < qrdThreshold.Value());
 }
 
 void AcquireWallFromTape() //  Discrete maneuver

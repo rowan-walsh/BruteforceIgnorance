@@ -89,9 +89,9 @@ void Update()
 	rightDetected = right > threshold;
 	
 	// Updates the LED tape-detect indicators. Pin logic is inverted
-	digitalWrite(LEFT_LED, !leftDetected);
-	digitalWrite(RIGHT_LED, !rightDetected);
-	digitalWrite(ERROR_LED, !((!leftDetected) && (!rightDetected)));
+	// digitalWrite(LEFT_LED, !leftDetected);
+	// digitalWrite(RIGHT_LED, !rightDetected);
+	// digitalWrite(ERROR_LED, !((!leftDetected) && (!rightDetected)));
 	
 	// Detects button presses and decrements the LCD counter
 	if(StopButton()) MENU = true;
