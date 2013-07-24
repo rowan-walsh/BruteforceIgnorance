@@ -18,3 +18,7 @@ STATE MACHINE:
 
 STEERING SERVO ANGLES
 	Need to figure out what angle to use for servo steering (bike vs. perp).  Are the angles inverted between the two servos?
+
+MOTOR DIRECTIONS IN DIFF. STEERING
+	Motors need to spin in opposite directions to go straight when in differential mode.  Which way is correct for forward motion?
+

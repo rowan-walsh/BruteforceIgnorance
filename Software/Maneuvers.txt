@@ -2,7 +2,7 @@ MANEUVERS
 =========
 
 
-These are the discrete maneuvers (in a rough order) that the robot will execute.
+These are the discrete maneuvers (in a rough order) of the robot.
 
 
 

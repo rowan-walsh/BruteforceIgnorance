@@ -82,9 +82,12 @@
 // LOOPING MANEUVER STATES
 #define MENU_STATE 0
 #define WALL_FOLLOWING_STATE 1
-#define ACQUIRING_TAPE_STATE 2
-#define TAPE_FOLLOWING_STATE 3
-
+#define TAPE_FOLLOW_DOWN_STATE 2
+#define COLLECTION_STATE 3
+#define TAPE_FOLLOW_UP_STATE 4
+// Loop behaviour switches
+#define FOLLOW_DOWN_DIRECTION 0
+#define FOLLOW_UP_DIRECTION 1
 
 // VARIABLES
 // State tracking
@@ -142,7 +145,7 @@ MenuItem items[] =
 {
 	laserThreshold, targetThreshold, ballCollectThreshold, qrdThreshold, 
 	laserProportionalGain, laserDerivativeGain, qrdProportionalGain, qrdDerivativeGain, 
-	brushSpeed, firingSpeed, bikeSpeed, 
+	brushSpeed, firingSpeed, bikeSpeed, diffSpeed, 
 	servoLoadAngle, servoCollectAngle, servoBikeAngle, servoDiffAngle
 };
 int itemCount = 15;
@@ -171,11 +174,14 @@ void loop()
 		case WALL_FOLLOWING_STATE:
 			WallFollow();
 		break;
-		case ACQUIRING_TAPE_STATE:
-			AcquireTape();
+		case TAPE_FOLLOW_DOWN_STATE:
+			FollowTape(FOLLOW_DOWN_DIRECTION);
 		break;
-		case TAPE_FOLLOWING_STATE:
-			FollowTape();
+		case COLLECTION_STATE:
+			Collection();
+		break;
+		case TAPE_FOLLOW_UP_STATE:
+			FollowTape(FOLLOW_UP_DIRECTION);
 		break;
 		default:
 		break;
@@ -355,7 +361,8 @@ void WallFollow() // Looping maneuver
 	if(endingWallFollowCounter != 0 && (millis()-endingWallFollowCounter) >= WALL_FOLLOW_END_DELAY)
 	{
 		MoveOffWall();
-		maneuverState = ACQUIRING_TAPE_STATE;
+		AcquireTapeFromWall();
+		maneuverState = TAPE_FOLLOW_DOWN_STATE;
 		return;
 	}
 
@@ -481,42 +488,65 @@ void MoveOffWall() // Discrete maneuver
 	tapeFound = false;
 }
 
-void AcquireTapeSensorUpdate() // Update - Acquiring tape
+void AcquireTapeFromWall() // Discrete maneuver
 {
-	qrdInnerLeftRawValue = analogRead(INNER_LEFT_QRD_PIN);
-	qrdInnerRightRawValue = analogRead(INNER_RIGHT_QRD_PIN);
-
-	if(qrdInnerLeftRawValue > qrdThreshold.Value() || qrdInnerRightRawValue > qrdThreshold.Value())
-		tapeFound = true;
-}
-
-void AcquireTape() // Looping maneuver
-{
-	AcquireTapeSensorUpdate();
-
-	// Enter line following maneuver when tape is found
-	if(tapeFound)
-	{
-		maneuverState = TAPE_FOLLOWING_STATE;
-		return;
-	}
+	// Set display state
+	if(lcdRefreshCount > 2) return;
+	Reset();
+	Print("Acquiring Tape");
 
 	// Set motor speed
 	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * diffSpeed.Value());
 	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * diffSpeed.Value());
 
-	// Set display state
-	if(lcdRefreshCount > 2) return;
-	Reset();
-	Print("Acquiring Tape");
+	do
+	{
+		qrdInnerLeftRawValue = analogRead(INNER_LEFT_QRD_PIN);
+		qrdInnerRightRawValue = analogRead(INNER_RIGHT_QRD_PIN);
+	}
+	while(qrdInnerLeftRawValue < qrdThreshold.Value() && qrdInnerRightRawValue < qrdThreshold.Value());
+
+	maneuverState = TAPE_FOLLOW_DOWN_STATE;
+	tapeFound = false;
 }
 
-void FollowTapeSensorUpdate() // Update - Following tapeFound
+void FollowTapeSensorUpdate() // Update - Following tape
+{
+	
+}
+
+void FollowTape(int followDirection) // Looping maneuver
+{
+	// Once either touch sensor is triggered (use the bool), run SquareTouch() and then change loop state to Collection()
+}
+
+// Turns the robot until both front touch sensors are in contact with the wall
+void SquareTouch() // Discrete maneuver
 {
 
 }
 
-void FollowTape() // Looping maneuver
+void CollectionSensorUpdate() // Update - collection
+{
+
+}
+
+void Collection() // Looping maneuver
+{
+
+}
+
+void BumpCollect() // Discrete maneuver
+{
+
+}
+
+void AcquireTapeFromCollect() // Discrete maneuver
+{
+
+}
+
+void AcquireWallFromTape() //  Discrete maneuver
 {
 
 }

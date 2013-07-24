@@ -1,4 +1,3 @@
-
 #include <phys253.h>      
 #include <LiquidCrystal.h>
 #include <Servo253.h> 
@@ -15,11 +14,8 @@
 #define VALUE_ADJUST_KNOB 7
 #define LEFT_SENSOR 0
 #define RIGHT_SENSOR 1
-#define LEFT_MOTOR 2
-#define RIGHT_MOTOR 3
-#define LEFT_LED 7
-#define RIGHT_LED 5
-#define ERROR_LED 6
+#define LEFT_MOTOR 0
+#define RIGHT_MOTOR 1
 
 // Tape States
 #define TOO_LEFT -1.0
