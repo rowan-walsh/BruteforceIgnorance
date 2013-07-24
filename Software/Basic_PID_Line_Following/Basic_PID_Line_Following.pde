@@ -12,8 +12,8 @@
 // Pin Definitions
 #define MENU_ADJUST_KNOB 6
 #define VALUE_ADJUST_KNOB 7
-#define LEFT_SENSOR 0
-#define RIGHT_SENSOR 1
+#define LEFT_SENSOR 9
+#define RIGHT_SENSOR 10
 #define LEFT_MOTOR 0
 #define RIGHT_MOTOR 1
 

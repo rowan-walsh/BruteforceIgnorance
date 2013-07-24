@@ -50,10 +50,10 @@
 #define LEFT_FRONT_MICROSWITCH_PIN 12
 #define RIGHT_SIDE_MICROSWITCH_PIN 15
 #define RIGHT_FRONT_MICROSWITCH_PIN 14
-#define OUTER_LEFT_QRD_PIN 8			// REQUIRES ADJUSTMENT
-#define INNER_LEFT_QRD_PIN 9			// REQUIRES ADJUSTMENT
-#define INNER_RIGHT_QRD_PIN 10			// REQUIRES ADJUSTMENT
-#define OUTER_RIGHT_QRD_PIN 11			// REQUIRES ADJUSTMENT
+#define OUTER_LEFT_QRD_PIN 8
+#define INNER_LEFT_QRD_PIN 9
+#define INNER_RIGHT_QRD_PIN 10
+#define OUTER_RIGHT_QRD_PIN 11
 // Knobs
 #define MENU_ADJUST_KNOB 6	 // Adjust selected menu item
 #define VALUE_ADJUST_KNOB 7	 // Adjust item value
@@ -117,6 +117,10 @@ int qrdOuterLeftRawValue = 0;
 int qrdInnerLeftRawValue = 0;
 int qrdInnerRightRawValue = 0;
 int qrdOuterRightRawValue = 0;
+bool endFound = false;
+// Collection
+
+bool ballCollected = false;
 
 // MENU ITEMS (for the love of god, don't modify!)
 // Thresholds
@@ -150,6 +154,7 @@ MenuItem items[] =
 };
 int itemCount = 15;
 
+// LCD ITEMS
 int lcdRefreshPeriod = 20; // Update LCD screen every n iterations. Larger = fewer updates. Smaller = flicker
 int lcdRefreshCount = 0; // Current iteration. Do not change this value
 
@@ -396,11 +401,13 @@ void WallFollow() // Looping maneuver
 	SetServo(fixedServo, servoBikeAngle.Value());
 
 	// Show steering information on screen
-	if(lcdRefreshCount > 2) return;
-	Reset();
-	Print("Steer ang:", proportional + derivative);
-	LCD.setCursor(0, 1);
-	Print("Direction: "); Print(strafeDirection == LEFT_DIRECTION ? "LEFT" : "RIGHT");
+	if(lcdRefreshCount <= 2)
+	{
+		Reset();
+		Print("Steer ang:", proportional + derivative);
+		LCD.setCursor(0, 1);
+		Print("Direction: "); Print(strafeDirection == LEFT_DIRECTION ? "LEFT" : "RIGHT");
+	}
 }
 
 void Firing() // Discrete maneuver
@@ -491,7 +498,6 @@ void MoveOffWall() // Discrete maneuver
 void AcquireTapeFromWall() // Discrete maneuver
 {
 	// Set display state
-	if(lcdRefreshCount > 2) return;
 	Reset();
 	Print("Acquiring Tape");
 
@@ -506,47 +512,117 @@ void AcquireTapeFromWall() // Discrete maneuver
 	}
 	while(qrdInnerLeftRawValue < qrdThreshold.Value() && qrdInnerRightRawValue < qrdThreshold.Value());
 
-	maneuverState = TAPE_FOLLOW_DOWN_STATE;
 	tapeFound = false;
 }
 
-void FollowTapeSensorUpdate() // Update - Following tape
+void FollowTapeSensorUpdate(int followDirection) // Update - Following tape
 {
-	
+	// Line following sensor stuff
+
+	// Check if end has been found (set endFound)
+	// Depends on followDirection
 }
 
 void FollowTape(int followDirection) // Looping maneuver
 {
-	// Once either touch sensor is triggered (use the bool), run SquareTouch() and then change loop state to Collection()
+	FollowTapeSensorUpdate(followDirection);
+
+	// If the end has been found,
+	if(endFound)
+		if(followDirection == FOLLOW_UP_DIRECTION) 			// while following tape up,
+		{
+			AcquireWallFromTape();								// find the front wall (cross tape-less gap)
+			maneuverState = WALL_FOLLOWING_STATE;				// begin wall following
+			endFound = false;
+			return;
+		}
+		else if(followDirection == FOLLOW_DOWN_DIRECTION)	// while following tape down,
+		{
+			SquareTouch();										// square to collection wall
+			maneuverState = COLLECTION_STATE;					// begin collection maneuver
+			endFound = false;
+			return;
+		}
+
+	// Line following stuff (motors)
 }
 
 // Turns the robot until both front touch sensors are in contact with the wall
 void SquareTouch() // Discrete maneuver
 {
+	// Set display state
+	Reset();
+	Print("Squaring to Wall");
 
+	// Collection motor should be ON
+	motor.speed(BRUSH_MOTOR_PIN, BRUSH_SPEED);
+
+	do
+	{
+		leftSwitch = Microswitch(LEFT_FRONT_MICROSWITCH_PIN);
+		rightSwitch = Microswitch(RIGHT_FRONT_MICROSWITCH_PIN);
+
+		if(leftSwitch) motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * diffSpeed.Value());
+		if(rightSwitch) motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * diffSpeed.Value());
+	}
+	while(!leftSwitch || !rightSwitch); // as long as BOTH switches are not triggered
 }
 
 void CollectionSensorUpdate() // Update - collection
 {
-
+	// Set bool on fullness of arm qrd
+	ballCollected = (analogRead(COLLECT_QRD_PIN) < QRD_THRESHOLD);
 }
 
 void Collection() // Looping maneuver
 {
+	// Set display state
+	if(lcdRefreshCount > 2) return;
+	Reset();
+	Print("Steer ang:", proportional + derivative);
+	LCD.setCursor(0, 1);
+	Print("Direction: "); Print(strafeDirection == LEFT_DIRECTION ? "LEFT" : "RIGHT");
 
+	CollectionSensorUpdate();
+
+	if(ballCollected)
+	{
+		AcquireTapeFromCollect();
+		maneuverState = FOLLOW_UP_DIRECTION;
+		ballCollected = false;
+		return;
+	}
+
+	BumpCollect();
 }
 
 void BumpCollect() // Discrete maneuver
 {
+	// Set display state
 
+	// Back up a certain distance
+
+	// Wait (?)
+
+	// Run SquareTouch()
 }
 
 void AcquireTapeFromCollect() // Discrete maneuver
 {
+	// Set display state
 
+	// Back up a certain distance
+
+	// Spin about 135 degrees
+
+	// Continue spinning until tape is found
 }
 
 void AcquireWallFromTape() //  Discrete maneuver
 {
+	// Set display state
+	Reset();
+	Print("Finding Wall...")
 
+	// 
 }
