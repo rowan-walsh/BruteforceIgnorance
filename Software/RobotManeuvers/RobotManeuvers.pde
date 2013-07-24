@@ -413,7 +413,7 @@ void WallFollow() // Looping maneuver
 void Firing() // Discrete maneuver
 {
 	// Check if lifter arm is empty
-	if(COLLECT_QRD_PIN) < BALL_COLLECT_THRESHOLD)
+	if(COLLECT_QRD_PIN < BALL_COLLECT_THRESHOLD)
 	{
 		isEmpty = false;
 		return;
@@ -460,7 +460,7 @@ void MoveOffWall() // Discrete maneuver
 	Reset();
 	Print("Moving away");
 	LCD.setCursor(0,1);
-	Print("from the wall...")
+	Print("from the wall...");
 
 	// Collection motor should be ON
 	motor.speed(BRUSH_MOTOR_PIN, BRUSH_SPEED);
@@ -559,13 +559,13 @@ void SquareTouch() // Discrete maneuver
 
 	do
 	{
-		leftSwitch = Microswitch(LEFT_FRONT_MICROSWITCH_PIN);
-		rightSwitch = Microswitch(RIGHT_FRONT_MICROSWITCH_PIN);
+		leftFront = Microswitch(LEFT_FRONT_MICROSWITCH_PIN);
+		rightFront = Microswitch(RIGHT_FRONT_MICROSWITCH_PIN);
 
-		if(leftSwitch) motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * diffSpeed.Value());
-		if(rightSwitch) motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * diffSpeed.Value());
+		if(leftFront) motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * diffSpeed.Value());
+		if(rightFront) motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * diffSpeed.Value());
 	}
-	while(!leftSwitch || !rightSwitch); // as long as BOTH switches are not triggered
+	while(!leftFront || !rightFront); // as long as BOTH switches are not triggered
 }
 
 void CollectionSensorUpdate() // Update - collection
@@ -577,11 +577,8 @@ void CollectionSensorUpdate() // Update - collection
 void Collection() // Looping maneuver
 {
 	// Set display state
-	if(lcdRefreshCount > 2) return;
 	Reset();
-	Print("Steer ang:", proportional + derivative);
-	LCD.setCursor(0, 1);
-	Print("Direction: "); Print(strafeDirection == LEFT_DIRECTION ? "LEFT" : "RIGHT");
+	Print("Collecting...");
 
 	CollectionSensorUpdate();
 
@@ -622,7 +619,7 @@ void AcquireWallFromTape() //  Discrete maneuver
 {
 	// Set display state
 	Reset();
-	Print("Finding Wall...")
+	Print("Finding Wall...");
 
 	// 
 }
