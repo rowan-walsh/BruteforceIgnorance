@@ -84,11 +84,13 @@ bool StopButton(int debounceTime = 80)
 void Update()
 {
 	// Gets new sensor readings
-	left = analogRead(LEFT_SENSOR);
-	right = analogRead(RIGHT_SENSOR);
-	leftDetected = left > threshold;
-	rightDetected = right > threshold;
-	
+	//left = analogRead(LEFT_SENSOR);
+	//right = analogRead(RIGHT_SENSOR);
+	//leftDetected = left > threshold;
+	//rightDetected = right > threshold;
+	leftDetected = left = !digitalRead(LEFT_SENSOR);
+	rightDetected = right = !digitalRead(RIGHT_SENSOR);
+
 	// Updates the LED tape-detect indicators. Pin logic is inverted
 	// digitalWrite(LEFT_LED, !leftDetected);
 	// digitalWrite(RIGHT_LED, !rightDetected);

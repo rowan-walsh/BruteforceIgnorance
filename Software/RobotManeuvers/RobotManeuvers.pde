@@ -8,13 +8,13 @@
 
 // EEPROM ADDRESSES (for the love of god, don't modify!)
 // Light sensors
-#define LASER_THRESHOLD 0
+	// #define LASER_THRESHOLD 0
 #define TARGET_THRESHOLD 1
 #define BALL_COLLECT_THRESHOLD 2
 // Gain parameters
-#define LASER_P_GAIN 3
-#define LASER_I_GAIN 4
-#define LASER_D_GAIN 5
+	//#define LASER_P_GAIN 3
+	//#define LASER_I_GAIN 4
+	//#define LASER_D_GAIN 5
 #define QRD_P_GAIN 6
 #define QRD_D_GAIN 7
 // Motor speeds
@@ -40,8 +40,8 @@
 #define BRUSH_MOTOR_PIN 2
 #define SHOOTING_MOTOR_PIN 3
 // Analog Inputs
-#define LEFT_LASER_PIN 0
-#define RIGHT_LASER_PIN 1
+	//#define LEFT_LASER_PIN 0
+	//#define RIGHT_LASER_PIN 1
 #define COLLECT_QRD_PIN 2
 #define TARGET_DETECT_LEFT_PIN 3
 #define TARGET_DETECT_RIGHT_PIN 4
@@ -60,8 +60,8 @@
 // Wall following
 #define LEFT_DIRECTION -1 
 #define RIGHT_DIRECTION 1
-#define TOO_CLOSE -1
-#define TOO_FAR 1
+	// #define TOO_CLOSE -1
+	// #define TOO_FAR 1
 // Differential steering
 #define LEFT_DIFF_MULT 1
 #define RIGHT_DIFF_MULT -1
@@ -104,27 +104,24 @@ bool rightSide = false;
 bool leftFront = false;
 bool rightFront = false;
 // QRD's
-bool qrdOuterLeft = 0;
-bool qrdInnerLeft = 0;
-bool qrdInnerRight = 0;
-bool qrdOuterRight = 0;
+bool qrdOuterLeft = false;
+bool qrdInnerLeft = false;
+bool qrdInnerRight = false;
+bool qrdOuterRight = false;
 // Wall Following
-// --- PID Algorithm
-int laserError = TOO_CLOSE;
-int laserPreviousError = TOO_FAR;
-int laserRawValue = 0;
 int strafeDirection = LEFT_DIRECTION;
-float integral = 0.0;
-int integralOffsetPeriod = 100;
-int integralOffsetCounter = integralOffsetPeriod;
-// --- Ball Handling
+	// // --- PID Algorithm
+	// int laserError = TOO_CLOSE;
+	// int laserPreviousError = TOO_FAR;
+	// int laserRawValue = 0;
+	// float integral = 0.0;
+	// int integralOffsetPeriod = 100;
+	// int integralOffsetCounter = integralOffsetPeriod;
 unsigned long timeOfLastFiring = 0;
 bool isEmpty = false;
 unsigned long endingWallFollowCounter = 0;
 // Target Finding
 bool targetFound = false;
-int IRleftRawValue = 0;
-int IRrightRawValue = 0;
 // Tape Following
 int qrdError = 0;
 int qrdPreviousError = 0;
@@ -132,40 +129,41 @@ bool endFound = false;
 // Collection
 bool ballCollected = false;
 
-// MENU ITEMS (for the love of god, don't modify!)
-// Thresholds
-MenuItem laserThreshold = MenuItem("LAS T", LASER_THRESHOLD);
-MenuItem targetThreshold = MenuItem("TAR TH", TARGET_THRESHOLD);
-MenuItem ballCollectThreshold = MenuItem("COL TH", BALL_COLLECT_THRESHOLD);
-// Gain parameters
-	// Laser gains
-MenuItem laserProportionalGain = MenuItem("L P-Gain", LASER_P_GAIN);
-MenuItem laserIntegralGain = MenuItem("L I-Gain", LASER_I_GAIN);
-MenuItem laserDerivativeGain = MenuItem("L D-Gain", LASER_D_GAIN);
-	// QRD gains
-MenuItem qrdProportionalGain = MenuItem("Q P-Gain", QRD_P_GAIN);
-MenuItem qrdDerivativeGain = MenuItem("Q D-Gain", QRD_D_GAIN);
-// Motor speeds
-MenuItem brushSpeed = MenuItem("Brush Vel", BRUSH_SPEED);
-MenuItem firingSpeed = MenuItem("Fire Vel", FIRING_SPEED);
-MenuItem bikeSpeed = MenuItem("Bike Vel", BIKE_SPEED);
-MenuItem diffSpeed = MenuItem("Diff Vel", DIFF_SPEED);
-// Servo angles
-MenuItem servoLoadAngle = MenuItem("Load ang", SERVO_LOAD_ANGLE);
-MenuItem servoCollectAngle = MenuItem("Col ang", SERVO_COLLECT_ANGLE);
-MenuItem servoBikeAngle = MenuItem("Bike ang", SERVO_BIKE_ANGLE);
-MenuItem servoDiffAngle = MenuItem("Diff ang", SERVO_DIFF_ANGLE);
+// MENU ITEMS 
+	// Thresholds
+			// MenuItem laserThreshold = MenuItem("LAS T", LASER_THRESHOLD);
+	MenuItem targetThreshold = MenuItem("TAR TH", TARGET_THRESHOLD);
+	MenuItem ballCollectThreshold = MenuItem("COL TH", BALL_COLLECT_THRESHOLD);
+	// Gain parameters
+			// 	// Laser gains
+			// MenuItem laserProportionalGain = MenuItem("L P-Gain", LASER_P_GAIN);
+			// MenuItem laserIntegralGain = MenuItem("L I-Gain", LASER_I_GAIN);
+			// MenuItem laserDerivativeGain = MenuItem("L D-Gain", LASER_D_GAIN);
+		// QRD gains
+	MenuItem qrdProportionalGain = MenuItem("Q P-Gain", QRD_P_GAIN);
+	MenuItem qrdDerivativeGain = MenuItem("Q D-Gain", QRD_D_GAIN);
+	// Motor speeds
+	MenuItem brushSpeed = MenuItem("Brush Vel", BRUSH_SPEED);
+	MenuItem firingSpeed = MenuItem("Fire Vel", FIRING_SPEED);
+	MenuItem bikeSpeed = MenuItem("Bike Vel", BIKE_SPEED);
+	MenuItem diffSpeed = MenuItem("Diff Vel", DIFF_SPEED);
+	// Servo angles
+	MenuItem servoLoadAngle = MenuItem("Load ang", SERVO_LOAD_ANGLE);
+	MenuItem servoCollectAngle = MenuItem("Col ang", SERVO_COLLECT_ANGLE);
+	MenuItem servoBikeAngle = MenuItem("Bike ang", SERVO_BIKE_ANGLE);
+	MenuItem servoDiffAngle = MenuItem("Diff ang", SERVO_DIFF_ANGLE);
 
-// Load menu items into an array
-MenuItem items[] = 
-{
-	laserThreshold, targetThreshold, ballCollectThreshold, 
-	laserProportionalGain, laserDerivativeGain, laserIntegralGain, 
-	qrdProportionalGain, qrdDerivativeGain, 
-	brushSpeed, firingSpeed, bikeSpeed, diffSpeed, 
-	servoLoadAngle, servoCollectAngle, servoBikeAngle, servoDiffAngle
-};
-int itemCount = 16;
+	// Load menu items into an array
+	MenuItem items[] = 
+	{
+			// laserThreshold,
+		targetThreshold, ballCollectThreshold, 
+			// laserProportionalGain, laserDerivativeGain, laserIntegralGain, 
+		qrdProportionalGain, qrdDerivativeGain, 
+		brushSpeed, firingSpeed, bikeSpeed, diffSpeed, 
+		servoLoadAngle, servoCollectAngle, servoBikeAngle, servoDiffAngle
+	};
+	int itemCount = 12;
 
 // LCD ITEMS
 int lcdRefreshPeriod = 20; // Update LCD screen every n iterations. Larger = fewer updates. Smaller = flicker
@@ -203,7 +201,7 @@ void loop()
 		break;
 		default:
 			Reset();
-			Print("Error: no state")
+			Print("Error: no state");
 		break;
 	}
 }
@@ -278,6 +276,24 @@ bool Microswitch(int microswitchPin, int debounceTime = 15)
 	return !digitalRead(microswitchPin);
 }
 
+// Returns a bool indicating whether the given qrd is sensing a non-reflective surface
+bool QRD(int qrdPin)
+{
+	return !digitalRead(qrdPin);
+}
+
+// Returns a bool indicating whether the collection QRD is being triggered by a ball
+bool CollectionQRD()
+{
+	return (analogRead(COLLECT_QRD_PIN) < ballCollectThreshold.Value());
+}
+
+// Returns a bool indicating whether the given IR sensor is detecting a target
+bool IR(int irPin)
+{
+	return (analogRead(irPin) > TARGET_THRESHOLD);
+}
+
 // Forces sensor updates while spinning for a specified number of milliseconds
 void SoftDelay(int milliseconds)
 {
@@ -314,14 +330,7 @@ void ProcessMenu() // Looping maneuver
 	// Display the item information
 	Reset();
 	Print(items[selectedItem].Name()); Print(" "); Print(items[selectedItem].Value());
-	
-	// Show laser threshold
-	if (selectedItem == LASER_THRESHOLD) 
-	{
-		Print(" ", analogRead(LEFT_LASER_PIN));	
-		Print(" ", analogRead(RIGHT_LASER_PIN));	
-	}
-	
+
 	LCD.setCursor(0,1);
 	Print("Set to ", knobValue); Print("?");
 	
@@ -335,16 +344,18 @@ void WallFollowSensorUpdate() // Update - Wall following
 	// If not ignoring lifter arm QRD (committed to collection)
 	if(endingWallFollowCounter == 0)
 		// If lifter arm is empty and reloading delay has passed, set to empty-state
-		isEmpty = (analogRead(COLLECT_QRD_PIN) < BALL_COLLECT_THRESHOLD && millis()-timeOfLastFiring >= EMPTY_DELAY);
+		isEmpty = (!CollectionQRD() && millis()-timeOfLastFiring >= EMPTY_DELAY);
 
 	// Microswitches
 	leftSide = Microswitch(LEFT_SIDE_MICROSWITCH_PIN);
 	rightSide = Microswitch(RIGHT_SIDE_MICROSWITCH_PIN);
 
+/*
 	// Update laser sensor, determine error
 	int detectingLaser = (strafeDirection == LEFT_DIRECTION) ? LEFT_LASER_PIN : RIGHT_LASER_PIN;
 	laserRawValue = analogRead(detectingLaser);
 	laserError = (laserRawValue < laserThreshold.Value()) ? TOO_CLOSE : TOO_FAR;
+*/
 
 	// Change direction if side microswitches are contacted
 	// If the robot is in the empty state, it begins to exit the wall-follow maneuver
@@ -362,12 +373,8 @@ void WallFollowSensorUpdate() // Update - Wall following
 
 	if(!isEmpty) // If we have balls, update IR sensors
 	{
-		// Update IR sensor values (can be ignored if we are empty)
-		IRleftRawValue = analogRead(TARGET_DETECT_LEFT_PIN);
-	//		IRrightRawValue = analogRead(TARGET_DETECT_RIGHT_PIN);
-
 		// Determine if a target has been found
-		targetFound = (IRleftRawValue > targetThreshold.Value());
+		targetFound = IR(TARGET_DETECT_LEFT_PIN);
 	}
 	else targetFound = false;
 }
@@ -386,8 +393,8 @@ void WallFollow() // Looping maneuver
 		return;
 	}
 
-	// When a target is found, execute discrete Firing() maneuver
-	if(targetFound)
+	// When a target is found and ball is loaded, execute discrete Firing() maneuver
+	if(targetFound && isEmpty)
 	{
 		Reset();
 		Print("Firing!");
@@ -398,11 +405,12 @@ void WallFollow() // Looping maneuver
 	}
 
 	// Collection motor should be ON
-	motor.speed(BRUSH_MOTOR_PIN, BRUSH_SPEED);
+	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
 
+/*
 	// Set motors to correct speed and direction
-	motor.speed(LEFT_MOTOR_PIN, BIKE_SPEED * strafeDirection);
-	motor.speed(RIGHT_MOTOR_PIN, BIKE_SPEED * strafeDirection);
+	motor.speed(LEFT_MOTOR_PIN, bikeSpeed.Value() * strafeDirection);
+	motor.speed(RIGHT_MOTOR_PIN, bikeSpeed.Value() * strafeDirection);
 
 	// Compute PID correction
 	float proportional = (float)laserError * laserProportionalGain.Value();
@@ -444,43 +452,35 @@ void WallFollow() // Looping maneuver
 		LCD.setCursor(0, 1);
 		Print("Direction: "); Print(strafeDirection == (LEFT_DIRECTION) ? "LEFT" : "RIGHT");
 	}
+*/
+
+
+
 }
 
 void Firing() // Discrete maneuver
 {
-	// Check if lifter arm is empty
-	if(COLLECT_QRD_PIN < BALL_COLLECT_THRESHOLD)
-	{
-		isEmpty = false;
-		return;
-	}
-
 	// Stop movement motors
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
 
 	// Collection motor should be ON
-	motor.speed(BRUSH_MOTOR_PIN, BRUSH_SPEED);
+	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
 
 	// Start firing rotors (spin-up)
-	motor.speed(SHOOTING_MOTOR_PIN, FIRING_SPEED);
-
-	// If necessary, move short distance back along the wall until IR signal is strongest (to correct for stopping distance)
-	// 		Adjust robot so parallel to wall using laser readings
-	// 			Turn robot until the laser readings are within X of each other's values.
+	motor.speed(SHOOTING_MOTOR_PIN, firingSpeed.Value());
 
 	// Lift loading servo to firing angle; check that lifter QRD goes off
-	SetServo(SERVO_BALL, SERVO_LOAD_ANGLE);
+	SetServo(SERVO_BALL, servoLoadAngle.Value());
 	
 	// Wait for servo to reach loading angle
 	delay(LOAD_DELAY);
 
 	// Check if loading servo arm is empty
-	if(analogRead(COLLECT_QRD_PIN) < BALL_COLLECT_THRESHOLD);
-	// DOES NOTHING ATM, might not be necessary
+	//if(!CollectionQRD);
 
 	// Put servo back to collecting angle
-	SetServo(SERVO_BALL, SERVO_COLLECT_ANGLE);
+	SetServo(SERVO_BALL, servoLoadAngle.Value());
 
 	// Stop firing rotor motor
 	motor.stop(BRUSH_MOTOR_PIN);
@@ -499,7 +499,7 @@ void MoveOffWall() // Discrete maneuver
 	Print("from the wall...");
 
 	// Collection motor should be ON
-	motor.speed(BRUSH_MOTOR_PIN, BRUSH_SPEED);
+	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
 
 	// Stop Motors
 	motor.stop(LEFT_MOTOR_PIN);
@@ -541,8 +541,8 @@ void AcquireTapeFromWall() // Discrete maneuver
 
 	do
 	{
-		qrdInnerLeft = digitalRead(INNER_LEFT_QRD_PIN);
-		qrdInnerRight = digitalRead(INNER_RIGHT_QRD_PIN);
+		qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
+		qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
 	}
 	while(!qrdInnerLeft && !qrdInnerRight);
 }
@@ -552,8 +552,8 @@ void FollowTapeSensorUpdate(int followDirection) // Update - Following tape
 	// Check if end has been found
 	if(followDirection == FOLLOW_UP_DIRECTION)
 	{
-		qrdOuterLeft = digitalRead(OUTER_LEFT_QRD_PIN);
-		qrdOuterRight = digitalRead(OUTER_RIGHT_QRD_PIN);
+		qrdOuterLeft = QRD(OUTER_LEFT_QRD_PIN);
+		qrdOuterRight = QRD(OUTER_RIGHT_QRD_PIN);
 		endFound = (qrdOuterLeft || qrdOuterRight);
 	}
 	else if(followDirection == FOLLOW_DOWN_DIRECTION)
@@ -565,8 +565,8 @@ void FollowTapeSensorUpdate(int followDirection) // Update - Following tape
 
 	if(!endFound)	// Only check line-following stuff if not at the end
 	{
-		qrdInnerLeft = digitalRead(INNER_LEFT_QRD_PIN);
-		qrdInnerRight = digitalRead(INNER_RIGHT_QRD_PIN);
+		qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
+		qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
 	}
 }
 
@@ -630,7 +630,7 @@ void SquareTouch() // Discrete maneuver
 	Print("Squaring up...");
 
 	// Collection motor should be ON
-	motor.speed(BRUSH_MOTOR_PIN, BRUSH_SPEED);
+	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
 
 	do
 	{
@@ -646,7 +646,7 @@ void SquareTouch() // Discrete maneuver
 void CollectionSensorUpdate() // Update - collection
 {
 	// Set bool on fullness of arm qrd
-	ballCollected = (analogRead(COLLECT_QRD_PIN) < QRD_THRESHOLD);
+	ballCollected = CollectionQRD();
 }
 
 void Collection() // Looping maneuver
@@ -656,7 +656,7 @@ void Collection() // Looping maneuver
 	Print("Collecting...");
 
 	// Collection motor should be ON
-	motor.speed(BRUSH_MOTOR_PIN, BRUSH_SPEED);
+	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
 
 	CollectionSensorUpdate();
 
@@ -678,7 +678,7 @@ void BumpCollect() // Discrete maneuver
 	Print("Bumping wall");
 
 	// Collection motor should be ON
-	motor.speed(BRUSH_MOTOR_PIN, BRUSH_SPEED);
+	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
 
 	// Back up a certain distance
 	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * DIFF_REVERSE * diffSpeed.Value());
@@ -720,8 +720,8 @@ void AcquireTapeFromCollect() // Discrete maneuver
 	// Wait until tape is detected
 	do
 	{
-		qrdInnerLeft = digitalRead(INNER_LEFT_QRD_PIN);
-		qrdInnerRight = digitalRead(INNER_RIGHT_QRD_PIN);
+		qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
+		qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
 	}
 	while(!qrdInnerLeft && !qrdInnerRight);
 
@@ -730,7 +730,7 @@ void AcquireTapeFromCollect() // Discrete maneuver
 	motor.stop(RIGHT_MOTOR_PIN);
 }
 
-void AcquireWallFromTape() //  Discrete maneuver
+void AcquireWallFromTape() // Discrete maneuver
 {
 	// Set display state
 	Reset();

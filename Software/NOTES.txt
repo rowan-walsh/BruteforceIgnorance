@@ -27,3 +27,20 @@ BOOLS
 
 ADDED INTEGRAL GAIN
 	Had to change existing code so that servos would be turned in opposite directions.  Check this.
+
+DELAYS
+	#define LOAD_DELAY 250
+	#define REBOUND_DELAY 2000
+	#define EMPTY_DELAY 5000
+	#define WALL_FOLLOW_END_DELAY 3000
+	#define SERVO_TRANSFORM_DELAY 250
+	#define MOVE_OFF_WALL_DELAY 500
+	#define TURN_135_DEG_DELAY 500
+	#define COLLECTION_DELAY 1000
+	#define COLLECTION_REVERSE_DELAY 250
+
+LASERS DEPRECIATED
+	Commented out the laser wall-following code
+
+HELPFUL FUNCTIONS
+	Added the helper functions QRD(int qrdPin), CollectionQRD(), and IR(in irPin).  They function similairly to Microswitch(int pin) but without any debounce.
