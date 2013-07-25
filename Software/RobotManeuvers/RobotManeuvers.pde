@@ -8,13 +8,9 @@
 
 // EEPROM ADDRESSES (for the love of god, don't modify!)
 // Light sensors
-	// #define LASER_THRESHOLD 0
 #define TARGET_THRESHOLD 1
 #define BALL_COLLECT_THRESHOLD 2
 // Gain parameters
-	//#define LASER_P_GAIN 3
-	//#define LASER_I_GAIN 4
-	//#define LASER_D_GAIN 5
 #define QRD_P_GAIN 6
 #define QRD_D_GAIN 7
 // Motor speeds
@@ -29,7 +25,6 @@
 #define SERVO_DIFF_ANGLE 15
 #define SERVO_WALL_CORRECT_ANGLE 16
 
-
 // PIN DECLARATIONS
 // Servo indices
 #define SERVO_BALL 0
@@ -41,8 +36,6 @@
 #define BRUSH_MOTOR_PIN 2
 #define SHOOTING_MOTOR_PIN 3
 // Analog Inputs
-	//#define LEFT_LASER_PIN 0
-	//#define RIGHT_LASER_PIN 1
 #define COLLECT_QRD_PIN 2
 #define TARGET_DETECT_LEFT_PIN 3
 #define TARGET_DETECT_RIGHT_PIN 4
@@ -61,8 +54,6 @@
 // Wall following
 #define LEFT_DIRECTION -1 
 #define RIGHT_DIRECTION 1
-	// #define TOO_CLOSE -1
-	// #define TOO_FAR 1
 // Differential steering
 #define LEFT_DIFF_MULT 1
 #define RIGHT_DIFF_MULT -1
@@ -70,7 +61,6 @@
 #define TOO_LEFT -1.0
 #define TOO_RIGHT 1.0
 #define OFF_TAPE 5.0
-
 
 // OTHER CONSTANTS
 // Delays
@@ -83,7 +73,6 @@
 #define TURN_135_DEG_DELAY 500
 #define COLLECTION_DELAY 1000
 #define COLLECTION_REVERSE_DELAY 250
-
 
 // LOOPING MANEUVER STATES
 #define MENU_STATE 0
@@ -104,7 +93,7 @@ bool leftSide = false;
 bool rightSide = false;
 bool leftFront = false;
 bool rightFront = false;
-// QRD's
+// QRDs
 bool qrdOuterLeft = false;
 bool qrdInnerLeft = false;
 bool qrdInnerRight = false;
@@ -114,13 +103,7 @@ int strafeDirection = LEFT_DIRECTION;
 int correctionMultiplier = 1;
 bool frontTouchWall = false;
 bool backTouchWall = false;
-	// // --- PID Algorithm
-	// int laserError = TOO_CLOSE;
-	// int laserPreviousError = TOO_FAR;
-	// int laserRawValue = 0;
-	// float integral = 0.0;
-	// int integralOffsetPeriod = 100;
-	// int integralOffsetCounter = integralOffsetPeriod;
+
 unsigned long timeOfLastFiring = 0;
 bool isEmpty = false;
 unsigned long endingWallFollowCounter = 0;
@@ -134,41 +117,33 @@ bool endFound = false;
 bool ballCollected = false;
 
 // MENU ITEMS 
-	// Thresholds
-			// MenuItem laserThreshold = MenuItem("LAS T", LASER_THRESHOLD);
-	MenuItem targetThreshold = MenuItem("Tar TH", TARGET_THRESHOLD);
-	MenuItem ballCollectThreshold = MenuItem("Col TH", BALL_COLLECT_THRESHOLD);
-	// Gain parameters
-			// 	// Laser gains
-			// MenuItem laserProportionalGain = MenuItem("L P-Gain", LASER_P_GAIN);
-			// MenuItem laserIntegralGain = MenuItem("L I-Gain", LASER_I_GAIN);
-			// MenuItem laserDerivativeGain = MenuItem("L D-Gain", LASER_D_GAIN);
-		// QRD gains
-	MenuItem qrdProportionalGain = MenuItem("Q P-Gain", QRD_P_GAIN);
-	MenuItem qrdDerivativeGain = MenuItem("Q D-Gain", QRD_D_GAIN);
-	// Motor speeds
-	MenuItem brushSpeed = MenuItem("Brush Vel", BRUSH_SPEED);
-	MenuItem firingSpeed = MenuItem("Fire Vel", FIRING_SPEED);
-	MenuItem bikeSpeed = MenuItem("Bike Vel", BIKE_SPEED);
-	MenuItem diffSpeed = MenuItem("Diff Vel", DIFF_SPEED);
-	// Servo angles
-	MenuItem servoLoadAngle = MenuItem("Load ang", SERVO_LOAD_ANGLE);
-	MenuItem servoCollectAngle = MenuItem("Col ang", SERVO_COLLECT_ANGLE);
-	MenuItem servoBikeAngle = MenuItem("Bike ang", SERVO_BIKE_ANGLE);
-	MenuItem servoDiffAngle = MenuItem("Diff ang", SERVO_DIFF_ANGLE);
-	MenuItem servoWallCorrectAngle = MenuItem("Wall ang", SERVO_WALL_CORRECT_ANGLE);
+// Thresholds
+MenuItem targetThreshold = MenuItem("Tar TH", TARGET_THRESHOLD);
+MenuItem ballCollectThreshold = MenuItem("Col TH", BALL_COLLECT_THRESHOLD);
+// QRD gains
+MenuItem qrdProportionalGain = MenuItem("Q P-Gain", QRD_P_GAIN);
+MenuItem qrdDerivativeGain = MenuItem("Q D-Gain", QRD_D_GAIN);
+// Motor speeds
+MenuItem brushSpeed = MenuItem("Brush Vel", BRUSH_SPEED);
+MenuItem firingSpeed = MenuItem("Fire Vel", FIRING_SPEED);
+MenuItem bikeSpeed = MenuItem("Bike Vel", BIKE_SPEED);
+MenuItem diffSpeed = MenuItem("Diff Vel", DIFF_SPEED);
+// Servo angles
+MenuItem servoLoadAngle = MenuItem("Load ang", SERVO_LOAD_ANGLE);
+MenuItem servoCollectAngle = MenuItem("Col ang", SERVO_COLLECT_ANGLE);
+MenuItem servoBikeAngle = MenuItem("Bike ang", SERVO_BIKE_ANGLE);
+MenuItem servoDiffAngle = MenuItem("Diff ang", SERVO_DIFF_ANGLE);
+MenuItem servoWallCorrectAngle = MenuItem("Wall ang", SERVO_WALL_CORRECT_ANGLE);
 
-	// Load menu items into an array
-	MenuItem items[] = 
-	{
-			// laserThreshold,
-		targetThreshold, ballCollectThreshold, 
-			// laserProportionalGain, laserDerivativeGain, laserIntegralGain, 
-		qrdProportionalGain, qrdDerivativeGain, 
-		brushSpeed, firingSpeed, bikeSpeed, diffSpeed, 
-		servoLoadAngle, servoCollectAngle, servoBikeAngle, servoDiffAngle, servoWallCorrectAngle 
-	};
-	int itemCount = 13;
+// Load menu items into an array
+MenuItem items[] = 
+{
+	targetThreshold, ballCollectThreshold,
+	qrdProportionalGain, qrdDerivativeGain, 
+	brushSpeed, firingSpeed, bikeSpeed, diffSpeed, 
+	servoLoadAngle, servoCollectAngle, servoBikeAngle, servoDiffAngle, servoWallCorrectAngle 
+};
+int itemCount = 13;
 
 // LCD ITEMS
 int lcdRefreshPeriod = 20; // Update LCD screen every n iterations. Larger = fewer updates. Smaller = flicker
@@ -186,27 +161,26 @@ void setup()
 void loop()
 {	
 	Update();
-
 	switch(maneuverState)
 	{
 		case MENU_STATE:
-			ProcessMenu();
+		ProcessMenu();
 		break;
 		case WALL_FOLLOWING_STATE:
-			WallFollow();
+		WallFollow();
 		break;
 		case TAPE_FOLLOW_DOWN_STATE:
-			FollowTape(FOLLOW_DOWN_DIRECTION);
+		FollowTape(FOLLOW_DOWN_DIRECTION);
 		break;
 		case COLLECTION_STATE:
-			Collection();
+		Collection();
 		break;
 		case TAPE_FOLLOW_UP_STATE:
-			FollowTape(FOLLOW_UP_DIRECTION);
+		FollowTape(FOLLOW_UP_DIRECTION);
 		break;
 		default:
-			Reset();
-			Print("Error: no state");
+		Reset();
+		Print("Error: no state");
 		break;
 	}
 }
@@ -214,22 +188,14 @@ void loop()
 // Sets a specified angle to the given servo
 void SetServo(int servoIndex, int servoAngle)
 {
+	// Constrain possible angles
 	if (servoAngle > 180) servoAngle = 180;
-	if (servoAngle < 0) servoAngle = 0;
-	switch(servoIndex)
-	{
-		case 0:
-			RCServo0.write(servoAngle);
-		break;
-		case 1:
-			RCServo1.write(servoAngle);
-		break;
-		case 2:
-			RCServo2.write(servoAngle);
-		break;
-		default:
-		break;
-	}
+	else if (servoAngle < 0) servoAngle = 0;
+	
+	// Set angle of specific servo
+	if(servoIndex == 0)	RCServo0.write(servoAngle);
+	else if (servoIndex == 1) RCServo1.write(servoAngle);
+	else if (servoIndex == 2) RCServo2.write(servoAngle);
 }
 
 void Reset()
@@ -359,13 +325,6 @@ void WallFollowSensorUpdate() // Update - Wall following
 	leftFront = Microswitch(LEFT_FRONT_MICROSWITCH_PIN);
 	rightFront = Microswitch(RIGHT_FRONT_MICROSWITCH_PIN);
 
-/*
-	// Update laser sensor, determine error
-	int detectingLaser = (strafeDirection == LEFT_DIRECTION) ? LEFT_LASER_PIN : RIGHT_LASER_PIN;
-	laserRawValue = analogRead(detectingLaser);
-	laserError = (laserRawValue < laserThreshold.Value()) ? TOO_CLOSE : TOO_FAR;
-*/
-
 	// Change direction if side microswitches are contacted
 	// If the robot is in the empty state, it begins to exit the wall-follow maneuver
 	if (strafeDirection == LEFT_DIRECTION && leftSide)
@@ -415,53 +374,6 @@ void WallFollow() // Looping maneuver
 
 	// Collection motor should be ON
 	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
-
-/*
-	// Set motors to correct speed and direction
-	motor.speed(LEFT_MOTOR_PIN, bikeSpeed.Value() * strafeDirection);
-	motor.speed(RIGHT_MOTOR_PIN, bikeSpeed.Value() * strafeDirection);
-
-	// Compute PID correction
-	float proportional = (float)laserError * laserProportionalGain.Value();
-	if (integralOffsetCounter < 0)
-	{
-		integral += laserError * laserIntegralGain.Value();
-		integralOffsetCounter = integralOffsetPeriod;
-	}
-	else integralOffsetCounter--;
-	if (integral > 25.0) integral = 25.0;
-	else if (integral < -25.0) integral = -25.0;
-	float derivative = (float)(laserError - laserPreviousError) * laserDerivativeGain.Value();
-	laserPreviousError = laserError;
-	
-	int compensationAngle = proportional + integral + derivative;
-	
-	// Set servos to new corrected angles
-	int steeringServo;
-	int fixedServo;
-	if(strafeDirection == LEFT_DIRECTION)
-	{
-		steeringServo = SERVO_LEFT;
-		fixedServo = SERVO_RIGHT;
-	}
-	else
-	{
-		steeringServo = SERVO_RIGHT;
-		fixedServo = SERVO_LEFT;
-		compensationAngle *= -1;	// Reverse compensation angle
-	}
-	SetServo(steeringServo, servoBikeAngle.Value() - compensationAngle);
-	SetServo(fixedServo, servoBikeAngle.Value());
-
-	// Show steering information on screen
-	if(lcdRefreshCount <= 2)
-	{
-		Reset();
-		Print("Steer ang:", compensationAngle);
-		LCD.setCursor(0, 1);
-		Print("Direction: "); Print(strafeDirection == (LEFT_DIRECTION) ? "LEFT" : "RIGHT");
-	}
-*/
 	motor.speed(LEFT_MOTOR_PIN, strafeDirection * bikeSpeed.Value());
 	motor.speed(RIGHT_MOTOR_PIN, strafeDirection * bikeSpeed.Value());
 
