@@ -428,69 +428,7 @@ void Firing() // Discrete maneuver
 	timeOfLastFiring = millis(); // Reset counter
 }
 
-// Moves the robot away from the wall and turns it until ready to acquire tape
-void MoveOffWall() // Discrete maneuver
-{
-	Reset();
-	Print("Wall exit");	
 
-	// Collection motor should be ON
-	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
-
-	// Stop left and right motors
-	motor.stop(LEFT_MOTOR_PIN); motor.stop(RIGHT_MOTOR_PIN);
-
-	// Move servos to differential steering configuration
-	SetServo(SERVO_LEFT, servoDiffAngle.Value());
-	SetServo(SERVO_RIGHT, servoDiffAngle.Value());
-	delay(SERVO_TRANSFORM_DELAY);
-
-	// Reverse from wall
-	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * DIFF_REVERSE * diffSpeed.Value());
-	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * DIFF_REVERSE * diffSpeed.Value());
-	delay(MOVE_OFF_WALL_DELAY);
-
-	// Turn 135deg from wall, towards center of arena
-	if(strafeDirection == LEFT_DIRECTION)	// On the right side of the arena
-	{
-		motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * diffSpeed.Value());
-		motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * DIFF_REVERSE * diffSpeed.Value());
-	}
-	else 									// On the left side of the arena
-	{
-		motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * DIFF_REVERSE * diffSpeed.Value());
-		motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * diffSpeed.Value());
-	}
-	delay(TURN_135_DEG_DELAY);
-}
-
-//	LEFT_DIRECTION == -1
-// 	RIGHT_DIRECTION == 1
-
-//	LEFT_DIFF_MULT == 1
-// 	RIGHT_DIFF_MULT == -1
-
-/*
-if left direction then
-	left motor = 1 = pos
-	right motor = -1 * -1 = pos
-
-if right direction then
-	left = 1 * -1 = -1 = neg
-	right = -1 = -1 = neg
-*/
-
-/*
-if LEFT_DIRECTION (-1) then
-	execute CW turn
-		left = pos
-		right = neg
-
-if RIGHT_DIRECTION (1) then
-	execute CC turn
-		left = neg
-		right = pos
-*/
 
 void MoveOffWall()
 {
@@ -510,6 +448,8 @@ void MoveOffWall()
 	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * DIFF_REVERSE * diffSpeed.Value());
 	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * DIFF_REVERSE * diffSpeed.Value());
 	delay(MOVE_OFF_WALL_DELAY);
+
+
 
 	// Make a controlled turn
 	motor.speed(LEFT_MOTOR_PIN, diffSpeed.Value() * -strafeDirection);
