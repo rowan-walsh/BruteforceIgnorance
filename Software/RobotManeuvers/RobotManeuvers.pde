@@ -11,23 +11,22 @@
 #define LASER_THRESHOLD 0
 #define TARGET_THRESHOLD 1
 #define BALL_COLLECT_THRESHOLD 2
-#define QRD_THRESHOLD 3
 // Gain parameters
-#define LASER_P_GAIN 4
-#define LASER_I_GAIN 5
-#define LASER_D_GAIN 6
-#define QRD_P_GAIN 7
-#define QRD_D_GAIN 8
+#define LASER_P_GAIN 3
+#define LASER_I_GAIN 4
+#define LASER_D_GAIN 5
+#define QRD_P_GAIN 6
+#define QRD_D_GAIN 7
 // Motor speeds
-#define BRUSH_SPEED 9
-#define FIRING_SPEED 10
-#define BIKE_SPEED 11
-#define DIFF_SPEED 12
+#define BRUSH_SPEED 8
+#define FIRING_SPEED 9
+#define BIKE_SPEED 10
+#define DIFF_SPEED 11
 // Servo angles
-#define SERVO_LOAD_ANGLE 13
-#define SERVO_COLLECT_ANGLE 14
-#define SERVO_BIKE_ANGLE 15
-#define SERVO_DIFF_ANGLE 16
+#define SERVO_LOAD_ANGLE 12
+#define SERVO_COLLECT_ANGLE 13
+#define SERVO_BIKE_ANGLE 14
+#define SERVO_DIFF_ANGLE 15
 
 
 // PIN DECLARATIONS
@@ -105,10 +104,10 @@ bool rightSide = false;
 bool leftFront = false;
 bool rightFront = false;
 // QRD's
-int qrdOuterLeft = 0;
-int qrdInnerLeft = 0;
-int qrdInnerRight = 0;
-int qrdOuterRight = 0;
+bool qrdOuterLeft = 0;
+bool qrdInnerLeft = 0;
+bool qrdInnerRight = 0;
+bool qrdOuterRight = 0;
 // Wall Following
 // --- PID Algorithm
 int laserError = TOO_CLOSE;
@@ -127,13 +126,10 @@ bool targetFound = false;
 int IRleftRawValue = 0;
 int IRrightRawValue = 0;
 // Tape Following
-bool qrdInnerLeftDetected = false;
-bool qrdInnerRightDetected = false;
 int qrdError = 0;
 int qrdPreviousError = 0;
 bool endFound = false;
 // Collection
-
 bool ballCollected = false;
 
 // MENU ITEMS (for the love of god, don't modify!)
@@ -141,7 +137,6 @@ bool ballCollected = false;
 MenuItem laserThreshold = MenuItem("LAS T", LASER_THRESHOLD);
 MenuItem targetThreshold = MenuItem("TAR TH", TARGET_THRESHOLD);
 MenuItem ballCollectThreshold = MenuItem("COL TH", BALL_COLLECT_THRESHOLD);
-MenuItem qrdThreshold = MenuItem("QRD TH", QRD_THRESHOLD);
 // Gain parameters
 	// Laser gains
 MenuItem laserProportionalGain = MenuItem("L P-Gain", LASER_P_GAIN);
@@ -164,13 +159,13 @@ MenuItem servoDiffAngle = MenuItem("Diff ang", SERVO_DIFF_ANGLE);
 // Load menu items into an array
 MenuItem items[] = 
 {
-	laserThreshold, targetThreshold, ballCollectThreshold, qrdThreshold, 
+	laserThreshold, targetThreshold, ballCollectThreshold, 
 	laserProportionalGain, laserDerivativeGain, laserIntegralGain, 
 	qrdProportionalGain, qrdDerivativeGain, 
 	brushSpeed, firingSpeed, bikeSpeed, diffSpeed, 
 	servoLoadAngle, servoCollectAngle, servoBikeAngle, servoDiffAngle
 };
-int itemCount = 17;
+int itemCount = 16;
 
 // LCD ITEMS
 int lcdRefreshPeriod = 20; // Update LCD screen every n iterations. Larger = fewer updates. Smaller = flicker
@@ -207,6 +202,8 @@ void loop()
 			FollowTape(FOLLOW_UP_DIRECTION);
 		break;
 		default:
+			Reset();
+			Print("Error: no state")
 		break;
 	}
 }
@@ -544,10 +541,10 @@ void AcquireTapeFromWall() // Discrete maneuver
 
 	do
 	{
-		qrdInnerLeft = analogRead(INNER_LEFT_QRD_PIN);
-		qrdInnerRight = analogRead(INNER_RIGHT_QRD_PIN);
+		qrdInnerLeft = digitalRead(INNER_LEFT_QRD_PIN);
+		qrdInnerRight = digitalRead(INNER_RIGHT_QRD_PIN);
 	}
-	while(qrdInnerLeft < qrdThreshold.Value() && qrdInnerRight < qrdThreshold.Value());
+	while(!qrdInnerLeft && !qrdInnerRight);
 }
 
 void FollowTapeSensorUpdate(int followDirection) // Update - Following tape
@@ -557,7 +554,7 @@ void FollowTapeSensorUpdate(int followDirection) // Update - Following tape
 	{
 		qrdOuterLeft = digitalRead(OUTER_LEFT_QRD_PIN);
 		qrdOuterRight = digitalRead(OUTER_RIGHT_QRD_PIN);
-		endFound = (qrdOuterLeft > qrdThreshold || qrdOuterRight > qrdThreshold);
+		endFound = (qrdOuterLeft || qrdOuterRight);
 	}
 	else if(followDirection == FOLLOW_DOWN_DIRECTION)
 	{
@@ -570,9 +567,6 @@ void FollowTapeSensorUpdate(int followDirection) // Update - Following tape
 	{
 		qrdInnerLeft = digitalRead(INNER_LEFT_QRD_PIN);
 		qrdInnerRight = digitalRead(INNER_RIGHT_QRD_PIN);
-
-		qrdInnerLeftDetected = (qrdInnerLeft > qrdThreshold);
-		qrdInnerRightDetected = (qrdInnerRight > qrdThreshold);
 	}
 }
 
@@ -600,17 +594,17 @@ void FollowTape(int followDirection) // Looping maneuver
 	}
 
 	// Determine error
-	if(qrdInnerLeftDetected && qrdInnerRightDetected)
+	if(qrdInnerLeft && qrdInnerRight)
 		qrdError = 0;
-	else if(!qrdInnerLeftDetected && qrdInnerRightDetected)
+	else if(!qrdInnerLeft && qrdInnerRight)
 		qrdError = TOO_LEFT;
-	else if(qrdInnerLeftDetected && !qrdInnerRightDetected)
+	else if(qrdInnerLeft && !qrdInnerRight)
 		qrdError = TOO_RIGHT;
-	else if(!qrdInnerLeftDetected && !qrdInnerRightDetected)
+	else if(!qrdInnerLeft && !qrdInnerRight)
 		qrdError = (qrdPreviousError <= TOO_LEFT) ? -1*OFF_TAPE : OFF_TAPE;
 
-	float proportional = (float)qrdError * qrdProportionalGain;
-	float derivative = (float)qrdError * qrdDerivativeGain;
+	float proportional = qrdError * qrdProportionalGain.Value();
+	float derivative = qrdError * qrdDerivativeGain.Value();
 	float compensationSpeed = proportional + derivative;
 	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * (diffSpeed.Value() + compensationSpeed));
 	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * (diffSpeed.Value() + compensationSpeed));
@@ -723,13 +717,17 @@ void AcquireTapeFromCollect() // Discrete maneuver
 	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * DIFF_REVERSE * diffSpeed.Value());
 	delay(TURN_135_DEG_DELAY);
 
-	// Keep spinning until tape is detected
+	// Wait until tape is detected
 	do
 	{
-		qrdInnerLeft = analogRead(INNER_LEFT_QRD_PIN);
-		qrdInnerRight = analogRead(INNER_RIGHT_QRD_PIN);
+		qrdInnerLeft = digitalRead(INNER_LEFT_QRD_PIN);
+		qrdInnerRight = digitalRead(INNER_RIGHT_QRD_PIN);
 	}
-	while(qrdInnerLeft < qrdThreshold.Value() && qrdInnerRight < qrdThreshold.Value());
+	while(!qrdInnerLeft && !qrdInnerRight);
+
+	// Stop spinning
+	motor.stop(LEFT_MOTOR_PIN);
+	motor.stop(RIGHT_MOTOR_PIN);
 }
 
 void AcquireWallFromTape() //  Discrete maneuver

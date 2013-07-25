@@ -22,3 +22,8 @@ STEERING SERVO ANGLES
 MOTOR DIRECTIONS IN DIFF. STEERING
 	Motors need to spin in opposite directions to go straight when in differential mode.  Which way is correct for forward motion?
 
+BOOLS
+	Many of the bools may have their logic backwards.  Need to check after flashing it to the TINAH or just think a little harder.
+
+ADDED INTEGRAL GAIN
+	Had to change existing code so that servos would be turned in opposite directions.  Check this.

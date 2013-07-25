@@ -27,6 +27,7 @@ int left = 0;
 int right = 0; 
 int previousError = 0;
 int error = 0;
+int deriveCounter = 1;
 bool leftDetected = false;
 bool rightDetected = false;
 
@@ -109,10 +110,15 @@ void ProcessMovement()
 	else if (!leftDetected && !rightDetected) error = (previousError <= TOO_LEFT) ? -OFF_TAPE : OFF_TAPE;
 	
 	float proportional = (float)error * proportionalGain;
-	float derivative = (float)(error - previousError) * derivativeGain;
+	float derivative = (float)(error - previousError) / (float)deriveCounter * derivativeGain;
 	motor.speed(LEFT_MOTOR, speed + (proportional + derivative));
 	motor.speed(RIGHT_MOTOR, speed - (proportional + derivative));
-	previousError = error;
+	if(previousError != error)
+	{
+		previousError = error;
+		deriveCounter = 1;
+	}
+	else deriveCounter++;
 
 	if(lcdRefreshCount != 0) return; // Mitigates screen flicker
 	LCD.clear(); LCD.home();
