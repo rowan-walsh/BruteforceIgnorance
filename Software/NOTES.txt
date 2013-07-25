@@ -45,3 +45,6 @@ LASERS DEPRECIATED
 
 HELPFUL FUNCTIONS
 	Added the helper functions QRD(int qrdPin), CollectionQRD(), and IR(in irPin).  They function similairly to Microswitch(int pin) but without any debounce.
+
+CAN'T EXIT TO MENU FROM DISCRETE MANEUVERS
+	Need to add Update to all loops in discrete maneuvers.
