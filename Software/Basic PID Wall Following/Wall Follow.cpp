@@ -54,7 +54,6 @@ float thresholdLeft = EEPROM.read(THRESHOLD_LEFT) * 4;
 float thresholdRight = EEPROM.read(THRESHOLD_RIGHT) * 4;
 float perpendicular = EEPROM.read(PERPENDICULAR) * 4;
 float turnCompensationGain = EEPROM.read(TURN_COMPENSATION) * 4;
-float boostAngle = 5.0;
 
 // State tracking
 bool MENU = true;
@@ -135,8 +134,6 @@ void Update()
 // the left and right motors. Prints motor and sensor values to LCD.
 void ProcessMovement()
 {
-
-
 	// Determine the error for correct direction
 	if (direction == LEFT) error = leftDetected ? TOO_CLOSE : TOO_FAR;
 	else if (direction == RIGHT) error = rightDetected ? TOO_CLOSE : TOO_FAR;
@@ -148,8 +145,8 @@ void ProcessMovement()
 		integralOffsetCounter = integralOffsetPeriod;
 	}
 	else integralOffsetCounter--;
-	if (integral > 25.0) integral = 25.0;
-	else if (integral < -25.0) integral = -25.0;
+	if (integral > 5.0) integral = 5.0;
+	else if (integral < -5.0) integral = -5.0;
 	
 	// PID calculations
 	float proportional = (float)error * proportionalGain;
@@ -166,11 +163,11 @@ void ProcessMovement()
 	if (direction == LEFT)
 	{
 		RCServo1.write(perpendicular - compensationAngle);
-		RCServo2.write(perpendicular + boostAngle);
+		RCServo2.write(perpendicular);
 	}
 	else
 	{
-		RCServo1.write(perpendicular - boostAngle);
+		RCServo1.write(perpendicular);
 		RCServo2.write(perpendicular + compensationAngle);
 	}
 
