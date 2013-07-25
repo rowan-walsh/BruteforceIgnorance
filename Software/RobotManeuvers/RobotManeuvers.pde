@@ -348,23 +348,15 @@ void Strafe()
 
 	if(strafeDirection == LEFT_DIRECTION)
 	{
-		// Set front servo
-		if(leftFront) SetServo(SERVO_LEFT, servoBikeAngle.Value());
-		else SetServo(SERVO_LEFT, servoBikeAngle.Value() + servoWallCorrectAngle.Value());
-
-		// Set rear servo
-		if(rightFront) SetServo(SERVO_RIGHT, servoBikeAngle.Value());
-		else SetServo(SERVO_RIGHT, servoBikeAngle.Value() - servoWallCorrectAngle.Value());
+		// Set servos
+		SetServo(SERVO_LEFT, 180 - servoBikeAngle.Value());
+		SetServo(SERVO_RIGHT, servoBikeAngle.Value() - servoWallCorrectAngle.Value());
 	}
 	else // strafeDirection == RIGHT_DIRECTION
 	{
-		// Set front servo
-		if(rightFront) SetServo(SERVO_RIGHT, servoBikeAngle.Value());
-		else SetServo(SERVO_RIGHT, servoBikeAngle.Value() + servoWallCorrectAngle.Value());
-
-		// Set rear servo
-		if(leftFront) SetServo(SERVO_LEFT, servoBikeAngle.Value());
-		else SetServo(SERVO_LEFT, servoBikeAngle.Value() - servoWallCorrectAngle.Value());
+		// Set servos
+		SetServo(SERVO_LEFT, 180 - servoBikeAngle.Value() + servoWallCorrectAngle.Value());
+		SetServo(SERVO_RIGHT, servoBikeAngle.Value());
 	}
 }
 
