@@ -106,7 +106,7 @@ bool backTouchWall = false;
 
 unsigned long timeOfLastFiring = 0;
 bool isEmpty = false;
-unsigned long endingWallFollowCounter = 0;
+
 // Target Finding
 bool targetFound = false;
 // Tape Following
@@ -143,11 +143,10 @@ MenuItem items[] =
 	brushSpeed, firingSpeed, bikeSpeed, diffSpeed, 
 	servoLoadAngle, servoCollectAngle, servoBikeAngle, servoDiffAngle, servoWallCorrectAngle 
 };
-int itemCount = 13;
+const int itemCount = 13;
 
-// LCD ITEMS
-int lcdRefreshPeriod = 20; // Update LCD screen every n iterations. Larger = fewer updates. Smaller = flicker
-int lcdRefreshCount = 0; // Current iteration. Do not change this value
+const int lcdRefreshPeriod = 20; // Update LCD screen every n iterations. Larger = fewer updates. Smaller = flicker
+unsigned int lcdRefreshCount = 0; // Current iteration. Do not change this value
 
 void setup()
 {
@@ -198,23 +197,20 @@ void SetServo(int servoIndex, int servoAngle)
 	else if (servoIndex == 2) RCServo2.write(servoAngle);
 }
 
-void Reset()
-{
+inline void Reset() {
 	LCD.clear();
 	LCD.home();
 }
 
-void Print(String text)
-{
+inline void Print(String text) {
 	LCD.print(text);
 }
 
-void Print(int value)
-{
+inline void Print(int value) {
 	LCD.print(value);
 }
 
-void Print(String text, int value)
+inline void Print(String text, int value)
 {
 	LCD.print(text);
 	LCD.print(value);
@@ -222,7 +218,7 @@ void Print(String text, int value)
 
 // Determines if the start button is being pressed.
 // Optional: Debounces the button for the specified number of milliseconds
-bool StartButton(int debounceTime = 40)
+inline bool StartButton(int debounceTime = 40)
 {
 	if(!startbutton()) return false;
 	delay(debounceTime);
@@ -231,7 +227,7 @@ bool StartButton(int debounceTime = 40)
 
 // Determines if the stop button is being pressed
 // Optional: Debounces the button for the specified number of milliseconds
-bool StopButton(int debounceTime = 40)
+inline bool StopButton(int debounceTime = 40)
 {
 	if(!stopbutton()) return false;
 	delay(debounceTime);
@@ -240,7 +236,7 @@ bool StopButton(int debounceTime = 40)
 
 // Returns a bool indicating whether the given microswitch is being pressed
 // Optional: Specify a debounce time
-bool Microswitch(int microswitchPin, int debounceTime = 15)
+inline bool Microswitch(int microswitchPin, int debounceTime = 15)
 {
 	if(digitalRead(microswitchPin)) return false;
 	delay(debounceTime);
@@ -248,20 +244,17 @@ bool Microswitch(int microswitchPin, int debounceTime = 15)
 }
 
 // Returns a bool indicating whether the given qrd is sensing a non-reflective surface
-bool QRD(int qrdPin)
-{
+inline bool QRD(int qrdPin) {
 	return !digitalRead(qrdPin);
 }
 
 // Returns a bool indicating whether the collection QRD is being triggered by a ball
-bool CollectionQRD()
-{
+inline bool CollectionQRD() {
 	return (analogRead(COLLECT_QRD_PIN) < ballCollectThreshold.Value());
 }
 
 // Returns a bool indicating whether the given IR sensor is detecting a target
-bool IR(int irPin)
-{
+inline bool IR(int irPin) {
 	return (analogRead(irPin) > TARGET_THRESHOLD);
 }
 
@@ -298,10 +291,8 @@ void ProcessMenu()
 
 void WallFollowSensorUpdate()
 {
-	// If not ignoring lifter arm QRD (committed to collection)
-	if(endingWallFollowCounter == 0)
-		// If lifter arm is empty and reloading delay has passed, set to empty-state
-		isEmpty = (!CollectionQRD() && millis()-timeOfLastFiring >= EMPTY_DELAY);
+	// Detect ball collection
+	isEmpty = (!CollectionQRD() && millis()-timeOfLastFiring >= EMPTY_DELAY);
 
 	// Microswitches
 	leftSide = Microswitch(LEFT_SIDE_MICROSWITCH_PIN);
@@ -310,28 +301,10 @@ void WallFollowSensorUpdate()
 	rightFront = Microswitch(RIGHT_FRONT_MICROSWITCH_PIN);
 
 	// Handle wall collisions
-	if (strafeDirection == LEFT_DIRECTION && leftSide) strafeDirection == RIGHT_DIRECTION;
-	else if (strafeDirection == RIGHT_DIRECTION && rightSide) strafeDirection == LEFT_DIRECTION;
+	if (leftSide && strafeDirection == LEFT_DIRECTION) strafeDirection == RIGHT_DIRECTION;
+	else if (rightSide && strafeDirection == RIGHT_DIRECTION) strafeDirection == LEFT_DIRECTION;
 
-	// Change direction if side microswitches are contacted
-	// If the robot is in the empty state, it begins to exit the wall-follow maneuver
-	if (strafeDirection == LEFT_DIRECTION && leftSide)
-	{
-		strafeDirection = RIGHT_DIRECTION;
-		// Begin end-wall-follow counter if the robot is empty at the rebound
-		endingWallFollowCounter = (isEmpty) ? millis() : 0;
-	}
-	else if (strafeDirection == RIGHT_DIRECTION && rightSide)
-	{
-		strafeDirection = LEFT_DIRECTION;
-		endingWallFollowCounter = (isEmpty) ? millis() : 0;
-	}
-
-	if(!isEmpty) // If we have balls, update IR sensors
-	{
-		// Determine if a target has been found
-		targetFound = IR(TARGET_DETECT_LEFT_PIN);
-	}
+	if(!isEmpty) targetFound = IR(TARGET_DETECT_LEFT_PIN);
 	else targetFound = false;
 }
 
@@ -343,7 +316,11 @@ void WallFollow()
 	if ((leftSide || rightSide) && isEmpty)
 	{
 		unsigned long startTime = millis();
-		Strafe() while (millis() < startTime + WALL_FOLLOW_END_DELAY);
+		while (millis() < startTime + WALL_FOLLOW_END_DELAY)
+		{
+			Strafe();
+			WallFollowSensorUpdate();
+		}
 		MoveOffWall();
 		AcquireTapeFromWall();
 		maneuverState = TAPE_FOLLOW_DOWN_STATE;
