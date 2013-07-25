@@ -265,14 +265,6 @@ bool IR(int irPin)
 	return (analogRead(irPin) > TARGET_THRESHOLD);
 }
 
-// Forces sensor updates while spinning for a specified number of milliseconds
-void SoftDelay(int milliseconds)
-{
-	unsigned long startTime = millis();
-	while (millis() < startTime + milliseconds)
-		Update();
-}
-
 void Update() // Update - Menu and LCD
 {
 	if(maneuverState != MENU_STATE && StopButton()) // If not in menu, check if enter button is pressed
@@ -317,9 +309,9 @@ void WallFollowSensorUpdate()
 	leftFront = Microswitch(LEFT_FRONT_MICROSWITCH_PIN);
 	rightFront = Microswitch(RIGHT_FRONT_MICROSWITCH_PIN);
 
-/*	// Handle wall collisions
+	// Handle wall collisions
 	if (strafeDirection == LEFT_DIRECTION && leftSide) strafeDirection == RIGHT_DIRECTION;
-	else if (strafeDirection == RIGHT_DIRECTION && rightSide) strafeDirection == LEFT_DIRECTION;*/
+	else if (strafeDirection == RIGHT_DIRECTION && rightSide) strafeDirection == LEFT_DIRECTION;
 
 	// Change direction if side microswitches are contacted
 	// If the robot is in the empty state, it begins to exit the wall-follow maneuver
@@ -343,32 +335,36 @@ void WallFollowSensorUpdate()
 	else targetFound = false;
 }
 
-void WallFollow() // Looping maneuver
+void WallFollow()
 {
 	WallFollowSensorUpdate();
 
-	// When the robot has moved far enough from the wall after going to the empty state, execute the discrete
-	//   MoveOffWall() maneuver and then change to the tape-acquiring maneuver state
-	if(endingWallFollowCounter != 0 && (millis()-endingWallFollowCounter) >= WALL_FOLLOW_END_DELAY)
+	// End the wall following maneuver
+	if ((leftSide || rightSide) && isEmpty)
 	{
+		unsigned long startTime = millis();
+		Strafe() while (millis() < startTime + WALL_FOLLOW_END_DELAY);
 		MoveOffWall();
 		AcquireTapeFromWall();
 		maneuverState = TAPE_FOLLOW_DOWN_STATE;
 		return;
 	}
 
-	// When a target is found and ball is loaded, execute discrete Firing() maneuver
+	// FIRE!
 	if(targetFound && !isEmpty)
 	{
-		Reset();
-		Print("Firing!");
-
+		Reset(); Print("Firing!");
 		Firing();
-
 		targetFound = false;
 	}
 
-	// Collection motor should be ON
+	Strafe();
+}
+
+// Strafes along front wall while performing ON/OFF distance correction
+void Strafe()
+{
+	// Engage collection, set strafing speeds
 	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
 	motor.speed(LEFT_MOTOR_PIN, strafeDirection * bikeSpeed.Value());
 	motor.speed(RIGHT_MOTOR_PIN, strafeDirection * bikeSpeed.Value());
@@ -393,7 +389,6 @@ void WallFollow() // Looping maneuver
 		if(leftFront) SetServo(SERVO_LEFT, servoBikeAngle.Value());
 		else SetServo(SERVO_LEFT, servoBikeAngle.Value() - servoWallCorrectAngle.Value());
 	}
-
 }
 
 void Firing() // Discrete maneuver
@@ -428,8 +423,7 @@ void Firing() // Discrete maneuver
 	timeOfLastFiring = millis(); // Reset counter
 }
 
-
-
+// Exectutes a controlled maneuver to exit the wall from a wall following position
 void MoveOffWall()
 {
 	Reset(); Print("Leaving wall");
@@ -449,8 +443,6 @@ void MoveOffWall()
 	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * DIFF_REVERSE * diffSpeed.Value());
 	delay(MOVE_OFF_WALL_DELAY);
 
-
-
 	// Make a controlled turn
 	motor.speed(LEFT_MOTOR_PIN, diffSpeed.Value() * -strafeDirection);
 	motor.speed(RIGHT_MOTOR_PIN, diffSpeed.Value() * -strafeDirection);
@@ -459,11 +451,8 @@ void MoveOffWall()
 
 void AcquireTapeFromWall() // Discrete maneuver
 {
-	// Set display state
-	Reset();
-	Print("Acquiring Tape");
+	Reset(); Print("Acquiring Tape");
 
-	// Set motor speed
 	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * diffSpeed.Value());
 	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * diffSpeed.Value());
 
