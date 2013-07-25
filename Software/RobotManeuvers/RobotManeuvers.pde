@@ -277,8 +277,8 @@ void Update() // Update - Menu and LCD
 {
 	if(maneuverState != MENU_STATE && StopButton()) // If not in menu, check if enter button is pressed
 	{
-			lastState = maneuverState;
-			maneuverState = MENU_STATE;
+		lastState = maneuverState;
+		maneuverState = MENU_STATE;
 	}
 	else if(StartButton()) maneuverState = lastState;
 	lcdRefreshCount = (lcdRefreshCount <= 0) ? lcdRefreshPeriod : (lcdRefreshCount - 1);
@@ -294,9 +294,8 @@ void ProcessMenu()
 	if (selectedItem > itemCount - 1) selectedItem = itemCount - 1; // Normalize the selection
 
 	// Display the item information
-	Reset();
+	Reset(); 
 	Print(items[selectedItem].Name()); Print(" "); Print(items[selectedItem].Value());
-
 	LCD.setCursor(0,1);
 	Print("Set to ", knobValue); Print("?");
 	
@@ -305,7 +304,7 @@ void ProcessMenu()
 	delay(50);
 }
 
-void WallFollowSensorUpdate() // Update - Wall following
+void WallFollowSensorUpdate()
 {
 	// If not ignoring lifter arm QRD (committed to collection)
 	if(endingWallFollowCounter == 0)
@@ -318,6 +317,11 @@ void WallFollowSensorUpdate() // Update - Wall following
 	leftFront = Microswitch(LEFT_FRONT_MICROSWITCH_PIN);
 	rightFront = Microswitch(RIGHT_FRONT_MICROSWITCH_PIN);
 
+/*	// Handle wall collisions
+	if (strafeDirection == LEFT_DIRECTION && leftSide) strafeDirection == RIGHT_DIRECTION;
+	else if (strafeDirection == RIGHT_DIRECTION && rightSide) strafeDirection == LEFT_DIRECTION;*/
+
+
 	// Change direction if side microswitches are contacted
 	// If the robot is in the empty state, it begins to exit the wall-follow maneuver
 	if (strafeDirection == LEFT_DIRECTION && leftSide)
@@ -326,7 +330,7 @@ void WallFollowSensorUpdate() // Update - Wall following
 		// Begin end-wall-follow counter if the robot is empty at the rebound
 		endingWallFollowCounter = (isEmpty) ? millis() : 0;
 	}
-	if (strafeDirection == RIGHT_DIRECTION && rightSide)
+	else if (strafeDirection == RIGHT_DIRECTION && rightSide)
 	{
 		strafeDirection = LEFT_DIRECTION;
 		endingWallFollowCounter = (isEmpty) ? millis() : 0;
@@ -355,7 +359,7 @@ void WallFollow() // Looping maneuver
 	}
 
 	// When a target is found and ball is loaded, execute discrete Firing() maneuver
-	if(targetFound && isEmpty)
+	if(targetFound && !isEmpty)
 	{
 		Reset();
 		Print("Firing!");
