@@ -321,7 +321,6 @@ void WallFollowSensorUpdate()
 	if (strafeDirection == LEFT_DIRECTION && leftSide) strafeDirection == RIGHT_DIRECTION;
 	else if (strafeDirection == RIGHT_DIRECTION && rightSide) strafeDirection == LEFT_DIRECTION;*/
 
-
 	// Change direction if side microswitches are contacted
 	// If the robot is in the empty state, it begins to exit the wall-follow maneuver
 	if (strafeDirection == LEFT_DIRECTION && leftSide)
@@ -433,16 +432,13 @@ void Firing() // Discrete maneuver
 void MoveOffWall() // Discrete maneuver
 {
 	Reset();
-	Print("Moving away");
-	LCD.setCursor(0,1);
-	Print("from the wall...");
+	Print("Wall exit");	
 
 	// Collection motor should be ON
 	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
 
-	// Stop Motors
-	motor.stop(LEFT_MOTOR_PIN);
-	motor.stop(RIGHT_MOTOR_PIN);
+	// Stop left and right motors
+	motor.stop(LEFT_MOTOR_PIN); motor.stop(RIGHT_MOTOR_PIN);
 
 	// Move servos to differential steering configuration
 	SetServo(SERVO_LEFT, servoDiffAngle.Value());
@@ -466,6 +462,28 @@ void MoveOffWall() // Discrete maneuver
 		motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * diffSpeed.Value());
 	}
 	delay(TURN_135_DEG_DELAY);
+}
+
+void MoveOffWall()
+{
+	Reset();
+	Print("Leaving wall");
+
+	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value()); 	// Engage collection
+	motor.stop(LEFT_MOTOR_PIN); motor.stop(RIGHT_MOTOR_PIN); // Halt navigation
+	delay(500); // allow motors to come to a halt
+
+	// Rotate servos
+	SetServo(SERVO_LEFT, servoDiffAngle.Value()); 
+	SetServo(SERVO_RIGHT, servoDiffAngle.Value());
+	delay(SERVO_TRANSFORM_DELAY);  
+
+	// Make a controlled reverse
+	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * DIFF_REVERSE * diffSpeed.Value());
+	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * DIFF_REVERSE * diffSpeed.Value());
+	delay(MOVE_OFF_WALL_DELAY);
+
+	
 }
 
 void AcquireTapeFromWall() // Discrete maneuver
