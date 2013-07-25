@@ -275,24 +275,17 @@ void SoftDelay(int milliseconds)
 
 void Update() // Update - Menu and LCD
 {
-	if(maneuverState != MENU_STATE) // If not in menu, check if enter button is pressed
+	if(maneuverState != MENU_STATE && StopButton()) // If not in menu, check if enter button is pressed
 	{
-		if(StopButton())
-		{
 			lastState = maneuverState;
 			maneuverState = MENU_STATE;
-		}
 	}
-	else // If already in menu, check if exit button is pressed
-		if(StartButton()) maneuverState = lastState;
-
-	// Update LCD counter (reduces screen flicker)
+	else if(StartButton()) maneuverState = lastState;
 	lcdRefreshCount = (lcdRefreshCount <= 0) ? lcdRefreshPeriod : (lcdRefreshCount - 1);
 }
 
-void ProcessMenu() // Looping maneuver
+void ProcessMenu()
 {
-	// Stop motors
 	motor.stop_all();
 
 	// Determine selected item and get knob values
