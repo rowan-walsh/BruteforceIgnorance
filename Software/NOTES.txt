@@ -40,7 +40,8 @@ DELAYS
 	#define COLLECTION_REVERSE_DELAY 250
 
 LASERS DEPRECIATED
-	Commented out the laser wall-following code
+	Commented out the laser wall-following code.
+		This includes the EEPROM addresses, pin definitions, direction definitions, global variable declarations, Menu items, WallFollowUpdate, WallFollow
 
 HELPFUL FUNCTIONS
 	Added the helper functions QRD(int qrdPin), CollectionQRD(), and IR(in irPin).  They function similairly to Microswitch(int pin) but without any debounce.

@@ -27,6 +27,7 @@
 #define SERVO_COLLECT_ANGLE 13
 #define SERVO_BIKE_ANGLE 14
 #define SERVO_DIFF_ANGLE 15
+#define SERVO_WALL_CORRECT_ANGLE 16
 
 
 // PIN DECLARATIONS
@@ -110,6 +111,9 @@ bool qrdInnerRight = false;
 bool qrdOuterRight = false;
 // Wall Following
 int strafeDirection = LEFT_DIRECTION;
+int correctionMultiplier = 1;
+bool frontTouchWall = false;
+bool backTouchWall = false;
 	// // --- PID Algorithm
 	// int laserError = TOO_CLOSE;
 	// int laserPreviousError = TOO_FAR;
@@ -132,8 +136,8 @@ bool ballCollected = false;
 // MENU ITEMS 
 	// Thresholds
 			// MenuItem laserThreshold = MenuItem("LAS T", LASER_THRESHOLD);
-	MenuItem targetThreshold = MenuItem("TAR TH", TARGET_THRESHOLD);
-	MenuItem ballCollectThreshold = MenuItem("COL TH", BALL_COLLECT_THRESHOLD);
+	MenuItem targetThreshold = MenuItem("Tar TH", TARGET_THRESHOLD);
+	MenuItem ballCollectThreshold = MenuItem("Col TH", BALL_COLLECT_THRESHOLD);
 	// Gain parameters
 			// 	// Laser gains
 			// MenuItem laserProportionalGain = MenuItem("L P-Gain", LASER_P_GAIN);
@@ -152,6 +156,7 @@ bool ballCollected = false;
 	MenuItem servoCollectAngle = MenuItem("Col ang", SERVO_COLLECT_ANGLE);
 	MenuItem servoBikeAngle = MenuItem("Bike ang", SERVO_BIKE_ANGLE);
 	MenuItem servoDiffAngle = MenuItem("Diff ang", SERVO_DIFF_ANGLE);
+	MenuItem servoWallCorrectAngle = MenuItem("Wall ang", SERVO_WALL_CORRECT_ANGLE);
 
 	// Load menu items into an array
 	MenuItem items[] = 
@@ -161,9 +166,9 @@ bool ballCollected = false;
 			// laserProportionalGain, laserDerivativeGain, laserIntegralGain, 
 		qrdProportionalGain, qrdDerivativeGain, 
 		brushSpeed, firingSpeed, bikeSpeed, diffSpeed, 
-		servoLoadAngle, servoCollectAngle, servoBikeAngle, servoDiffAngle
+		servoLoadAngle, servoCollectAngle, servoBikeAngle, servoDiffAngle, servoWallCorrectAngle 
 	};
-	int itemCount = 12;
+	int itemCount = 13;
 
 // LCD ITEMS
 int lcdRefreshPeriod = 20; // Update LCD screen every n iterations. Larger = fewer updates. Smaller = flicker
@@ -305,11 +310,13 @@ void SoftDelay(int milliseconds)
 void Update() // Update - Menu and LCD
 {
 	if(maneuverState != MENU_STATE) // If not in menu, check if enter button is pressed
+	{
 		if(StopButton())
 		{
 			lastState = maneuverState;
 			maneuverState = MENU_STATE;
 		}
+	}
 	else // If already in menu, check if exit button is pressed
 		if(StartButton()) maneuverState = lastState;
 
@@ -349,6 +356,8 @@ void WallFollowSensorUpdate() // Update - Wall following
 	// Microswitches
 	leftSide = Microswitch(LEFT_SIDE_MICROSWITCH_PIN);
 	rightSide = Microswitch(RIGHT_SIDE_MICROSWITCH_PIN);
+	leftFront = Microswitch(LEFT_FRONT_MICROSWITCH_PIN);
+	rightFront = Microswitch(RIGHT_FRONT_MICROSWITCH_PIN);
 
 /*
 	// Update laser sensor, determine error
@@ -453,8 +462,29 @@ void WallFollow() // Looping maneuver
 		Print("Direction: "); Print(strafeDirection == (LEFT_DIRECTION) ? "LEFT" : "RIGHT");
 	}
 */
+	motor.speed(LEFT_MOTOR_PIN, strafeDirection * bikeSpeed.Value());
+	motor.speed(RIGHT_MOTOR_PIN, strafeDirection * bikeSpeed.Value());
 
+	if(strafeDirection == LEFT_DIRECTION)
+	{
+		// Set front servo
+		if(leftFront) SetServo(SERVO_LEFT, servoBikeAngle.Value());
+		else SetServo(SERVO_LEFT, servoBikeAngle.Value() + servoWallCorrectAngle.Value());
 
+		// Set rear servo
+		if(rightFront) SetServo(SERVO_RIGHT, servoBikeAngle.Value());
+		else SetServo(SERVO_RIGHT, servoBikeAngle.Value() - servoWallCorrectAngle.Value());
+	}
+	else // strafeDirection == RIGHT_DIRECTION
+	{
+		// Set front servo
+		if(rightFront) SetServo(SERVO_RIGHT, servoBikeAngle.Value());
+		else SetServo(SERVO_RIGHT, servoBikeAngle.Value() + servoWallCorrectAngle.Value());
+
+		// Set rear servo
+		if(leftFront) SetServo(SERVO_LEFT, servoBikeAngle.Value());
+		else SetServo(SERVO_LEFT, servoBikeAngle.Value() - servoWallCorrectAngle.Value());
+	}
 
 }
 
