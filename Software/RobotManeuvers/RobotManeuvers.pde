@@ -112,6 +112,7 @@ bool targetFound = false;
 // Tape Following
 int qrdError = 0;
 int qrdPreviousError = 0;
+int qrdDeriveCounter = 1;
 bool endFound = false;
 // Collection
 bool ballCollected = false;
@@ -490,11 +491,16 @@ void FollowTape(int followDirection) // Looping maneuver
 		qrdError = (qrdPreviousError <= TOO_LEFT) ? -1*OFF_TAPE : OFF_TAPE;
 
 	float proportional = qrdError * qrdProportionalGain.Value();
-	float derivative = qrdError * qrdDerivativeGain.Value();
+	float derivative = (float)(qrdError - qrdPreviousError) / (float)qrdDeriveCounter * qrdDerivativeGain.Value();
 	float compensationSpeed = proportional + derivative;
 	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * (diffSpeed.Value() + compensationSpeed));
 	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * (diffSpeed.Value() + compensationSpeed));
-	qrdPreviousError = qrdError;
+	if(qrdPreviousError != qrdError)
+	{
+		qrdPreviousError = qrdError;
+		qrdDeriveCounter = 1;
+	}
+	else qrdDeriveCounter++;
 
 	// Show steering information on screen
 	if(lcdRefreshCount <= 2)
