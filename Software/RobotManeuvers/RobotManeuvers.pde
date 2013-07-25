@@ -464,13 +464,41 @@ void MoveOffWall() // Discrete maneuver
 	delay(TURN_135_DEG_DELAY);
 }
 
+//	LEFT_DIRECTION == -1
+// 	RIGHT_DIRECTION == 1
+
+//	LEFT_DIFF_MULT == 1
+// 	RIGHT_DIFF_MULT == -1
+
+/*
+if left direction then
+	left motor = 1 = pos
+	right motor = -1 * -1 = pos
+
+if right direction then
+	left = 1 * -1 = -1 = neg
+	right = -1 = -1 = neg
+*/
+
+/*
+if LEFT_DIRECTION (-1) then
+	execute CW turn
+		left = pos
+		right = neg
+
+if RIGHT_DIRECTION (1) then
+	execute CC turn
+		left = neg
+		right = pos
+*/
+
 void MoveOffWall()
 {
-	Reset();
-	Print("Leaving wall");
+	Reset(); Print("Leaving wall");
 
-	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value()); 	// Engage collection
-	motor.stop(LEFT_MOTOR_PIN); motor.stop(RIGHT_MOTOR_PIN); // Halt navigation
+	// Engage collection and halt navigation
+	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
+	motor.stop(LEFT_MOTOR_PIN); motor.stop(RIGHT_MOTOR_PIN);
 	delay(500); // allow motors to come to a halt
 
 	// Rotate servos
@@ -483,7 +511,10 @@ void MoveOffWall()
 	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * DIFF_REVERSE * diffSpeed.Value());
 	delay(MOVE_OFF_WALL_DELAY);
 
-	
+	// Make a controlled turn
+	motor.speed(LEFT_MOTOR_PIN, diffSpeed.Value() * -strafeDirection);
+	motor.speed(RIGHT_MOTOR_PIN, diffSpeed.Value() * -strafeDirection);
+	delay(TURN_135_DEG_DELAY);
 }
 
 void AcquireTapeFromWall() // Discrete maneuver
