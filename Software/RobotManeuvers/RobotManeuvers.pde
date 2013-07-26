@@ -64,7 +64,6 @@
 
 // OTHER CONSTANTS
 // Delays
-#define LOAD_DELAY 250
 #define REBOUND_DELAY 2000
 #define EMPTY_DELAY 5000
 #define WALL_FOLLOW_END_DELAY 3000
@@ -250,13 +249,17 @@ inline bool QRD(int qrdPin) {
 }
 
 // Returns a bool indicating whether the collection QRD is being triggered by a ball
-inline bool CollectionQRD() {
+inline bool Armed() {
 	return (analogRead(COLLECT_QRD_PIN) < ballCollectThreshold.Value());
 }
 
 // Returns a bool indicating whether the given IR sensor is detecting a target
 inline bool IR(int irPin) {
 	return (analogRead(irPin) > TARGET_THRESHOLD);
+}
+
+inline bool TargetAcquired(){
+	return (analogRead(TARGET_DETECT_LEFT_PIN) > TARGET_THRESHOLD);
 }
 
 void Update() // Update - Menu and LCD
@@ -293,7 +296,7 @@ void ProcessMenu()
 void WallFollowSensorUpdate()
 {
 	// Detect ball collection
-	isEmpty = (!CollectionQRD() && millis()-timeOfLastFiring >= EMPTY_DELAY);
+	isEmpty = (!Armed() && millis()-timeOfLastFiring >= EMPTY_DELAY);
 
 	// Microswitches
 	leftSide = Microswitch(LEFT_SIDE_MICROSWITCH_PIN);
@@ -332,7 +335,7 @@ void WallFollow()
 	if(targetFound && !isEmpty)
 	{
 		Reset(); Print("Firing!");
-		Firing();
+		Fire();
 		targetFound = false;
 	}
 
@@ -361,36 +364,25 @@ void Strafe()
 	}
 }
 
-void Firing() // Discrete maneuver
+void Fire() 
 {
-	// Stop movement motors
+	// Disengage navigationm; engage collection and firing
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
-
-	// Collection motor should be ON
 	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
-
-	// Start firing rotors (spin-up)
 	motor.speed(SHOOTING_MOTOR_PIN, firingSpeed.Value());
 
-	// Lift loading servo to firing angle; check that lifter QRD goes off
+	// Load firing mechanism
 	SetServo(SERVO_BALL, servoLoadAngle.Value());
-	
-	// Wait for servo to reach loading angle
-	delay(LOAD_DELAY);
-
-	// Check if loading servo arm is empty
-	//if(!CollectionQRD);
-
-	// Put servo back to collecting angle
+	while(Armed()) delay(10); // Wait until ball unloaded from arm
 	SetServo(SERVO_BALL, servoLoadAngle.Value());
 
 	// Stop firing rotor motor
-	motor.stop(BRUSH_MOTOR_PIN);
+	delay(500); // Allow time for ball to shoot
+	motor.stop(SHOOTING_MOTOR_PIN);
 
-	// Wait with collection running for X seconds (possibly strafe in direction ball deflects) to collect the rebound.
-	delay(REBOUND_DELAY);
-	timeOfLastFiring = millis(); // Reset counter
+	delay(REBOUND_DELAY); // Attempt to collect rebounded balls
+	timeOfLastFiring = millis();
 }
 
 // Exectutes a controlled maneuver to exit the wall from a wall following position
@@ -538,7 +530,7 @@ void SquareTouch() // Discrete maneuver
 void CollectionSensorUpdate() // Update - collection
 {
 	// Set bool on fullness of arm qrd
-	ballCollected = CollectionQRD();
+	ballCollected = Armed();
 }
 
 void Collection() // Looping maneuver
