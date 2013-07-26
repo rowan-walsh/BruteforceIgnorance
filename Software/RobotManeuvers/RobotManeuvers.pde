@@ -293,69 +293,86 @@ void ProcessMenu()
 	delay(50);
 }
 
-void WallFollowSensorUpdate()
+void OverrideState()
 {
+	Reset();
+	Print("Secret menu"); LCD.setCursor(0,1); Print("unlocked");
+	delay(1000);
+
+	while(!StartButton())
+	{
+ 		int selectedState = knob(VALUE_ADJUST_KNOB) / 4 + 1; // Allow user to select states 1-4 (not zero)
+ 		Reset(); 
+ 		Print("Current: ", lastState); LCD.setCursor(0,1); 
+ 		Print("Set to ", selectedState); Print("?");
+ 		if(StopButton()) lastState = selectedState;
+ 		delay(50);
+ 	};
+ }
+
+ void WallFollowSensorUpdate()
+ {
 	// Detect ball collection
-	isEmpty = (!Armed() && millis()-timeOfLastFiring >= EMPTY_DELAY);
+ 	isEmpty = (!Armed() && millis()-timeOfLastFiring >= EMPTY_DELAY);
 
 	// Microswitches
-	leftSide = Microswitch(LEFT_SIDE_MICROSWITCH_PIN);
-	rightSide = Microswitch(RIGHT_SIDE_MICROSWITCH_PIN);
-	leftFront = Microswitch(LEFT_FRONT_MICROSWITCH_PIN);
-	rightFront = Microswitch(RIGHT_FRONT_MICROSWITCH_PIN);
+ 	leftSide = Microswitch(LEFT_SIDE_MICROSWITCH_PIN);
+ 	rightSide = Microswitch(RIGHT_SIDE_MICROSWITCH_PIN);
+ 	leftFront = Microswitch(LEFT_FRONT_MICROSWITCH_PIN);
+ 	rightFront = Microswitch(RIGHT_FRONT_MICROSWITCH_PIN);
 
 	// Handle wall collisions
-	if (leftSide && strafeDirection == LEFT_DIRECTION) strafeDirection == RIGHT_DIRECTION;
-	else if (rightSide && strafeDirection == RIGHT_DIRECTION) strafeDirection == LEFT_DIRECTION;
+ 	if (leftSide && strafeDirection == LEFT_DIRECTION) strafeDirection == RIGHT_DIRECTION;
+ 	else if (rightSide && strafeDirection == RIGHT_DIRECTION) strafeDirection == LEFT_DIRECTION;
 
-	if(!isEmpty) targetFound = IR(TARGET_DETECT_LEFT_PIN);
-	else targetFound = false;
-}
+ 	if(!isEmpty) targetFound = IR(TARGET_DETECT_LEFT_PIN);
+ 	else targetFound = false;
+ }
 
-void WallFollow()
-{
-	WallFollowSensorUpdate();
+ void WallFollow()
+ {
+ 	WallFollowSensorUpdate();
 
 	// End the wall following maneuver
-	if ((leftSide || rightSide) && isEmpty)
-	{
-		unsigned long startTime = millis();
-		while (millis() < startTime + WALL_FOLLOW_END_DELAY)
-		{
-			Strafe();
-			WallFollowSensorUpdate();
-		}
-		MoveOffWall();
-		AcquireTapeFromWall();
-		maneuverState = TAPE_FOLLOW_DOWN_STATE;
-		return;
-	}
+ 	if ((leftSide || rightSide) && isEmpty)
+ 	{
+ 		unsigned long startTime = millis();
+ 		while (millis() < startTime + WALL_FOLLOW_END_DELAY)
+ 		{
+ 			Strafe();
+ 			WallFollowSensorUpdate();
+ 		}
+ 		MoveOffWall();
+ 		AcquireTapeFromWall();
+ 		maneuverState = TAPE_FOLLOW_DOWN_STATE;
+ 		return;
+ 	}
 
 	// FIRE!
-	if(targetFound && !isEmpty)
-	{
-		Reset(); Print("Firing!");
-		Fire();
-		targetFound = false;
-	}
+ 	if(targetFound && !isEmpty)
+ 	{
+ 		Reset(); Print("Firing!");
+ 		Fire();
+ 		targetFound = false;
+ 	}
 
-	Strafe();
-}
+ 	Strafe();
+ }
 
 // Strafes along front wall while performing ON/OFF distance correction
-void Strafe()
-{
+ void Strafe()
+ {
 	// Engage collection, set strafing speeds
-	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
-	motor.speed(LEFT_MOTOR_PIN, strafeDirection * bikeSpeed.Value());
-	motor.speed(RIGHT_MOTOR_PIN, strafeDirection * bikeSpeed.Value());
+ 	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
+ 	motor.speed(LEFT_MOTOR_PIN, strafeDirection * bikeSpeed.Value());
+ 	motor.speed(RIGHT_MOTOR_PIN, strafeDirection * bikeSpeed.Value());
 
-	if(strafeDirection == LEFT_DIRECTION)
-	{
+ 	if(strafeDirection == LEFT_DIRECTION)
+ 	{
 		// Set servos
-		SetServo(SERVO_LEFT, 180 - servoBikeAngle.Value());
-		SetServo(SERVO_RIGHT, servoBikeAngle.Value() - servoWallCorrectAngle.Value());
-	}
+ 		SetServo(SERVO_LEFT, 180 - servoBikeAngle.Value());
+ 		SetServo(SERVO_RIGHT, servoBikeAngle.Value() - servoWallCorrectAngle.Value());
+ 	}
 	else // strafeDirection == RIGHT_DIRECTION
 	{
 		// Set servos
@@ -411,7 +428,7 @@ void MoveOffWall()
 	delay(TURN_135_DEG_DELAY);
 }
 
-void AcquireTapeFromWall() // Discrete maneuver
+void AcquireTapeFromWall()
 {
 	Reset(); Print("Acquiring Tape");
 
