@@ -148,42 +148,6 @@ const int itemCount = 13;
 const int lcdRefreshPeriod = 20; // Update LCD screen every n iterations. Larger = fewer updates. Smaller = flicker
 unsigned int lcdRefreshCount = 0; // Current iteration. Do not change this value
 
-void setup()
-{
-	portMode(0, INPUT);       
-	portMode(1, INPUT); 
-	RCServo0.attach(RCServo0Output);
-	RCServo1.attach(RCServo1Output);
-	RCServo2.attach(RCServo2Output);
-}
-
-void loop()
-{	
-	Update();
-	switch(maneuverState)
-	{
-		case MENU_STATE:
-		ProcessMenu();
-		break;
-		case WALL_FOLLOWING_STATE:
-		WallFollow();
-		break;
-		case TAPE_FOLLOW_DOWN_STATE:
-		FollowTape(FOLLOW_DOWN_DIRECTION);
-		break;
-		case COLLECTION_STATE:
-		Collection();
-		break;
-		case TAPE_FOLLOW_UP_STATE:
-		FollowTape(FOLLOW_UP_DIRECTION);
-		break;
-		default:
-		Reset();
-		Print("Error: no state");
-		break;
-	}
-}
-
 // Sets a specified angle to the given servo
 void SetServo(int servoIndex, int servoAngle)
 {

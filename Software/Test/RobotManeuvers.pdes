@@ -533,7 +533,7 @@ void SquareTouch()
 		
 		// Disengage motors when touching wall
 		int leftSpeed = leftFront ? 0 : LEFT_DIFF_MULT * diffSpeed.Value(); 
-		int rightSpeed = rightFront ? 0 : RIGHT_DIFF_MULT * diffSpeed.Value();
+		int rightSpeed = rightFront ? 0 : RIGH_DIFF_MULT * diffSpeed.Value();
 		motor.speed(LEFT_MOTOR_PIN, leftSpeed);
 		motor.speed(RIGHT_MOTOR_PIN, rightSpeed);
 	
