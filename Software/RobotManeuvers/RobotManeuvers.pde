@@ -118,7 +118,7 @@ bool ballCollected = false;
 
 // MENU ITEMS 
 // Thresholds
-MenuItem targetThreshold = MenuItem("Tar TH", TARGET_THRESHOLD);
+MenuItem targetThreshold = MenuItem("T TH", TARGET_THRESHOLD);
 MenuItem ballCollectThreshold = MenuItem("Col TH", BALL_COLLECT_THRESHOLD);
 // QRD gains
 MenuItem qrdProportionalGain = MenuItem("Q P-Gain", QRD_P_GAIN);
@@ -277,7 +277,7 @@ void ProcessMenu()
 {
 	motor.stop_all();
 
-	if (StartButton(2000)) OverrideState(); // Unlock secret menu
+	if (knob(VALUE_ADJUST_KNOB) == 0 && knob(MENU_ADJUST_KNOB) == 0 && StopButton(2000)) OverrideState(); // Unlock secret menu
 
 	// Determine selected item and get knob values
 	int knobValue = knob(VALUE_ADJUST_KNOB);
@@ -287,6 +287,10 @@ void ProcessMenu()
 	// Display the item information
 	Reset(); 
 	Print(items[selectedItem].Name()); Print(" "); Print(items[selectedItem].Value());
+
+	if (selectedItem == 0) Print(" ", analogRead(TARGET_DETECT_LEFT_PIN)); 
+	else if (selectedItem == 1) Print(" ", analogRead(COLLECT_QRD_PIN)); 
+
 	LCD.setCursor(0,1);
 	Print("Set to ", knobValue); Print("?");
 	
