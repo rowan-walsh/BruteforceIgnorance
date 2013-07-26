@@ -464,11 +464,9 @@ void FollowTapeSensorUpdate(int followDirection) // Update - Following tape
 		endFound = (leftFront || rightFront);
 	}
 
-	if(!endFound)	// Only check line-following stuff if not at the end
-	{
-		qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
-		qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
-	}
+	if(endFound) return; // Only check line-following stuff if not at the end
+	qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
+	qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
 }
 
 void FollowTape(int followDirection) // Looping maneuver
@@ -494,16 +492,13 @@ void FollowTape(int followDirection) // Looping maneuver
 		}
 	}
 
-	// Determine error
-	if(qrdInnerLeft && qrdInnerRight)
-		qrdError = 0;
-	else if(!qrdInnerLeft && qrdInnerRight)
-		qrdError = TOO_LEFT;
-	else if(qrdInnerLeft && !qrdInnerRight)
-		qrdError = TOO_RIGHT;
-	else if(!qrdInnerLeft && !qrdInnerRight)
-		qrdError = (qrdPreviousError <= TOO_LEFT) ? -1*OFF_TAPE : OFF_TAPE;
+	// Compute QRD error
+	if(qrdInnerLeft && qrdInnerRight) qrdError = 0;
+	else if(!qrdInnerLeft && qrdInnerRight) qrdError = TOO_LEFT;
+	else if(qrdInnerLeft && !qrdInnerRight)	qrdError = TOO_RIGHT;
+	else if(!qrdInnerLeft && !qrdInnerRight) qrdError = (qrdPreviousError <= TOO_LEFT) ? -1*OFF_TAPE : OFF_TAPE;
 
+	// Compute PID course correction
 	float proportional = qrdError * qrdProportionalGain.Value();
 	float derivative = (float)(qrdError - qrdPreviousError) / (float)qrdDeriveCounter * qrdDerivativeGain.Value();
 	float compensationSpeed = proportional + derivative;
@@ -517,33 +512,32 @@ void FollowTape(int followDirection) // Looping maneuver
 	else qrdDeriveCounter++;
 
 	// Show steering information on screen
-	if(lcdRefreshCount <= 2)
-	{
-		Reset();
-		Print("Steer speed:", compensationSpeed);
-		LCD.setCursor(0, 1);
-		Print("Error: ", qrdError);
-	}
+	if(lcdRefreshCount > 2) return;
+	Reset();
+	Print("Steer speed:", compensationSpeed);
+	LCD.setCursor(0, 1);
+	Print("Error: ", qrdError);
 }
 
-// Turns the robot until both front touch sensors are in contact with the wall
-void SquareTouch() // Discrete maneuver
+void SquareTouch()
 {
-	// Set display state
-	Reset();
-	Print("Wall found,");
-	LCD.setCursor(0,1);
+	Reset(); 
+	Print("Wall found,"); LCD.setCursor(0,1);
 	Print("Squaring up...");
-
-	// Collection motor should be ON
-	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
-
+	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value()); // Engage collection
+	
 	do
 	{
+		// Update microswitches
 		leftFront = Microswitch(LEFT_FRONT_MICROSWITCH_PIN);
 		rightFront = Microswitch(RIGHT_FRONT_MICROSWITCH_PIN);
-		if(leftFront) motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * diffSpeed.Value());
-		if(rightFront) motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * diffSpeed.Value());
+		
+		// Disengage motors when touching wall
+		int leftSpeed = leftFront ? 0 : LEFT_DIFF_MULT * diffSpeed.Value(); 
+		int rightSpeed = rightFront ? 0 : RIGH_DIFF_MULT * diffSpeed.Value();
+		motor.speed(LEFT_MOTOR_PIN, leftSpeed);
+		motor.speed(RIGHT_MOTOR_PIN, rightSpeed);
+	
 		if (StopButton(3000)) return; // escape condition
 	}
 	while(!leftFront && !rightFront); // as long as BOTH switches are not triggered
@@ -556,12 +550,8 @@ void CollectionSensorUpdate() {
 void Collection() // Looping maneuver
 {
 	// Set display state
-	Reset();
-	Print("Collecting...");
-
-	// Collection motor should be ON
-	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
-
+	Reset(); Print("Collecting...");
+	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value()); // Engage collection
 	CollectionSensorUpdate();
 
 	if(ballCollected)
@@ -575,31 +565,25 @@ void Collection() // Looping maneuver
 	BumpCollect();
 }
 
-void BumpCollect() // Discrete maneuver
+void BumpCollect()
 {
-	// Set display state
-	LCD.setCursor(0,1);
-	Print("Bumping wall");
+	LCD.setCursor(0,1);	Print("Bumping wall");
 
-	// Collection motor should be ON
-	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
-
-	// Back up a certain distance
+	// Engage collection and reverse navigation motors
+	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value()); // Engage collection	
 	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * DIFF_REVERSE * diffSpeed.Value());
 	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * DIFF_REVERSE * diffSpeed.Value());
 	delay(COLLECTION_REVERSE_DELAY);
-
-	// Stop Motors
-	motor.stop(LEFT_MOTOR_PIN);
+	
+	// Disengage navigation motors
+	motor.stop(LEFT_MOTOR_PIN); 
 	motor.stop(RIGHT_MOTOR_PIN);
 
-	// Wait
 	delay(COLLECTION_DELAY);
-
 	SquareTouch();
 }
 
-void AcquireTapeFromCollect() // Discrete maneuver
+void AcquireTapeFromCollect() 
 {
 	// Set display state
 	Reset();
@@ -630,18 +614,15 @@ void AcquireTapeFromCollect() // Discrete maneuver
 	}
 	while(!qrdInnerLeft && !qrdInnerRight);
 
-	// Stop spinning
+	// Disengage motors
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
 }
 
-void AcquireWallFromTape() // Discrete maneuver
+void AcquireWallFromTape() 
 {
-	// Set display state
-	Reset();
-	Print("Tape ended,");
-	LCD.setCursor(0,1);
+	Reset(); 
+	Print("Tape ended,"); LCD.setCursor(0,1);
 	Print("Finding Wall...");
-
 	SquareTouch();
 }
