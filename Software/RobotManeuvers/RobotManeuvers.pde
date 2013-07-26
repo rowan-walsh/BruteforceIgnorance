@@ -341,9 +341,9 @@ void OverrideState()
  		unsigned long startTime = millis();
  		while (millis() < startTime + WALL_FOLLOW_END_DELAY)
  		{
- 			Update();
  			Strafe();
  			WallFollowSensorUpdate();
+ 			if (StopButton(3000)) return; // escape condition
  		}
  		MoveOffWall();
  		AcquireTapeFromWall();
@@ -372,13 +372,11 @@ void OverrideState()
 
  	if(strafeDirection == LEFT_DIRECTION)
  	{
-		// Set servos
  		SetServo(SERVO_LEFT, 180 - servoBikeAngle.Value());
  		SetServo(SERVO_RIGHT, servoBikeAngle.Value() - servoWallCorrectAngle.Value());
  	}
 	else // strafeDirection == RIGHT_DIRECTION
 	{
-		// Set servos
 		SetServo(SERVO_LEFT, 180 - servoBikeAngle.Value() + servoWallCorrectAngle.Value());
 		SetServo(SERVO_RIGHT, servoBikeAngle.Value());
 	}
@@ -393,14 +391,12 @@ void Fire()
 	motor.speed(SHOOTING_MOTOR_PIN, firingSpeed.Value());
 
 	// Load firing mechanism
+	Reset(); Print("Loading ball");
 	SetServo(SERVO_BALL, servoLoadAngle.Value());
-	while(Armed()) 
-	{
-		Update();
-		delay(10);
-	}
-	 // Wait until ball unloaded from arm
-	SetServo(SERVO_BALL, servoLoadAngle.Value());
+	while(Armed()) // Wait until ball unloaded
+		if (StopButton(3000)) return; // escape condition	
+	Reset();
+	SetServo(SERVO_BALL, servoCollectAngle.Value()); // return arm to collect position
 
 	// Stop firing rotor motor
 	delay(500); // Allow time for ball to shoot
@@ -445,9 +441,9 @@ void AcquireTapeFromWall()
 
 	do
 	{
-		Update();
 		qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
 		qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
+		if (StopButton(3000)) return; // escape condition
 	}
 	while(!qrdInnerLeft && !qrdInnerRight);
 }
@@ -544,12 +540,11 @@ void SquareTouch() // Discrete maneuver
 
 	do
 	{
-		Update();
 		leftFront = Microswitch(LEFT_FRONT_MICROSWITCH_PIN);
 		rightFront = Microswitch(RIGHT_FRONT_MICROSWITCH_PIN);
-
 		if(leftFront) motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * diffSpeed.Value());
 		if(rightFront) motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * diffSpeed.Value());
+		if (StopButton(3000)) return; // escape condition
 	}
 	while(!leftFront && !rightFront); // as long as BOTH switches are not triggered
 }
@@ -629,9 +624,9 @@ void AcquireTapeFromCollect() // Discrete maneuver
 	// Wait until tape is detected
 	do
 	{
-		Update();
 		qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
 		qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
+		if (StopButton(3000)) return; // escape condition
 	}
 	while(!qrdInnerLeft && !qrdInnerRight);
 
