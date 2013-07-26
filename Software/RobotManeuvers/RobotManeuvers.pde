@@ -528,7 +528,6 @@ void SquareTouch()
 	
 	do
 	{
-		// Update microswitches
 		leftFront = Microswitch(LEFT_FRONT_MICROSWITCH_PIN);
 		rightFront = Microswitch(RIGHT_FRONT_MICROSWITCH_PIN);
 		
@@ -547,22 +546,19 @@ void CollectionSensorUpdate() {
 	ballCollected = Armed();
 }
 
-void Collection() // Looping maneuver
+void Collection()
 {
-	// Set display state
 	Reset(); Print("Collecting...");
 	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value()); // Engage collection
 	CollectionSensorUpdate();
 
-	if(ballCollected)
+	if (ballCollected)
 	{
 		AcquireTapeFromCollect();
 		maneuverState = FOLLOW_UP_DIRECTION;
 		ballCollected = false;
-		return;
-	}
-
-	BumpCollect();
+		
+	} else BumpCollect();
 }
 
 void BumpCollect()
