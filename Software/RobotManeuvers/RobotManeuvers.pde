@@ -341,6 +341,7 @@ void OverrideState()
  		unsigned long startTime = millis();
  		while (millis() < startTime + WALL_FOLLOW_END_DELAY)
  		{
+ 			Update();
  			Strafe();
  			WallFollowSensorUpdate();
  		}
@@ -553,9 +554,7 @@ void SquareTouch() // Discrete maneuver
 	while(!leftFront && !rightFront); // as long as BOTH switches are not triggered
 }
 
-void CollectionSensorUpdate() // Update - collection
-{
-	// Set bool on fullness of arm qrd
+void CollectionSensorUpdate() {
 	ballCollected = Armed();
 }
 
@@ -630,6 +629,7 @@ void AcquireTapeFromCollect() // Discrete maneuver
 	// Wait until tape is detected
 	do
 	{
+		Update();
 		qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
 		qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
 	}
