@@ -328,7 +328,20 @@ void OverrideState()
  	Reset();
  	Print("Secret level"); LCD.setCursor(0,1); Print("unlocked");
  	delay(1000);
- 	while(!StopButton()) Fire();
+ 	Reset();
+
+ 	motor(BRUSH_MOTOR_PIN, brushSpeed.Value());
+ 	motor(SHOOTING_MOTOR_PIN, firingSpeed.Value());
+
+ 	while(!StopButton())
+ 	{
+ 		Reset(); Print(analogRead(COLLECT_QRD_PIN));
+ 		if (analogRead(COLLECT_QRD_PIN) < ballCollectThreshold.Value())
+ 			SetServo(SERVO_BALL, servoLoadAngle.Value());
+ 		else 
+ 			SetServo(SERVO_BALL, servoCollectAngle.Value());
+ 		delay(100);
+ 	}
  }
 
  void WallFollowSensorUpdate()
