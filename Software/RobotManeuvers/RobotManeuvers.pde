@@ -277,6 +277,8 @@ void ProcessMenu()
 {
 	motor.stop_all();
 
+	if (StopButton(3000)) OverrideState(); // Unlock secret menu
+
 	// Determine selected item and get knob values
 	int knobValue = knob(VALUE_ADJUST_KNOB);
 	int selectedItem = knob(MENU_ADJUST_KNOB) / (1024 / (itemCount - 1));
