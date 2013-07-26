@@ -330,14 +330,18 @@ void OverrideState()
  	delay(1000);
  	Reset();
 
- 	motor(BRUSH_MOTOR_PIN, brushSpeed.Value());
- 	motor(SHOOTING_MOTOR_PIN, firingSpeed.Value());
+ 	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
+ 	motor.speed(SHOOTING_MOTOR_PIN, firingSpeed.Value());
 
  	while(!StopButton())
  	{
  		Reset(); Print(analogRead(COLLECT_QRD_PIN));
  		if (analogRead(COLLECT_QRD_PIN) < ballCollectThreshold.Value())
+ 		{
+ 			delay(500);
  			SetServo(SERVO_BALL, servoLoadAngle.Value());
+ 			delay(1000);
+ 		}
  		else 
  			SetServo(SERVO_BALL, servoCollectAngle.Value());
  		delay(100);
