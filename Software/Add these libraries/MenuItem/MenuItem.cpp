@@ -36,7 +36,7 @@ void MenuItem::SetValue(int newValue)
 // Returns the current item value
 int MenuItem::Value()
 {
-	return value;
+	return EEPROM.read(eepromAddress) * 4;
 }
 
 // Returns name of the menu item
