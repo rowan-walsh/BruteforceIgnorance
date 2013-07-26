@@ -277,7 +277,7 @@ void ProcessMenu()
 {
 	motor.stop_all();
 
-	if (StopButton(3000)) OverrideState(); // Unlock secret menu
+	if (StopButton(2000)) OverrideState(); // Unlock secret menu
 
 	// Determine selected item and get knob values
 	int knobValue = knob(VALUE_ADJUST_KNOB);
@@ -303,7 +303,7 @@ void OverrideState()
 
 	while(!StartButton())
 	{
- 		int selectedState = knob(VALUE_ADJUST_KNOB) / 4 + 1; // Allow user to select states 1-4 (not zero)
+ 		int selectedState = knob(VALUE_ADJUST_KNOB) / 256 + 1; // Allow user to select states 1-4 (not zero)
  		Reset(); 
  		Print("Current: ", lastState); LCD.setCursor(0,1); 
  		Print("Set to ", selectedState); Print("?");
@@ -393,7 +393,12 @@ void Fire()
 
 	// Load firing mechanism
 	SetServo(SERVO_BALL, servoLoadAngle.Value());
-	while(Armed()) delay(10); // Wait until ball unloaded from arm
+	while(Armed()) 
+	{
+		Update();
+		delay(10);
+	}
+	 // Wait until ball unloaded from arm
 	SetServo(SERVO_BALL, servoLoadAngle.Value());
 
 	// Stop firing rotor motor
@@ -439,6 +444,7 @@ void AcquireTapeFromWall()
 
 	do
 	{
+		Update();
 		qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
 		qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
 	}
@@ -537,6 +543,7 @@ void SquareTouch() // Discrete maneuver
 
 	do
 	{
+		Update();
 		leftFront = Microswitch(LEFT_FRONT_MICROSWITCH_PIN);
 		rightFront = Microswitch(RIGHT_FRONT_MICROSWITCH_PIN);
 
