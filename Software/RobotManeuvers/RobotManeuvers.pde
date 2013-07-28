@@ -249,7 +249,7 @@ inline bool QRD(int qrdPin) {
 }
 
 // Returns a bool indicating whether the collection QRD is being triggered by a ball
-inline bool Armed(int debounceTime = 30){}
+inline bool Armed(int debounceTime = 30)
 {
 	if (!analogRead(COLLECT_QRD_PIN) < ballCollectThreshold.Value()) return false;
 	delay(debounceTime);
