@@ -23,7 +23,8 @@
 #define SERVO_COLLECT_ANGLE 13
 #define SERVO_BIKE_ANGLE 14
 #define SERVO_DIFF_ANGLE 15
-#define SERVO_WALL_CORRECT_ANGLE 16
+#define SERVO_WALL_REAR_ANGLE 16
+#define SERVO_WALL_FRONT_ANGLE 17
 
 // PIN DECLARATIONS
 // Servo indices
@@ -133,7 +134,8 @@ MenuItem servoLoadAngle = MenuItem("Load ang", SERVO_LOAD_ANGLE);
 MenuItem servoCollectAngle = MenuItem("Col ang", SERVO_COLLECT_ANGLE);
 MenuItem servoBikeAngle = MenuItem("Bike ang", SERVO_BIKE_ANGLE);
 MenuItem servoDiffAngle = MenuItem("Diff ang", SERVO_DIFF_ANGLE);
-MenuItem servoWallCorrectAngle = MenuItem("Wall ang", SERVO_WALL_CORRECT_ANGLE);
+MenuItem servoWallRearAngle = MenuItem("Rear ang", SERVO_WALL_REAR_ANGLE);
+MenuItem servoWallFrontAngle = MenuItem("Front ang", SERVO_WALL_FRONT_ANGLE);
 
 // Load menu items into an array
 MenuItem items[] = 
@@ -141,7 +143,7 @@ MenuItem items[] =
 	targetThreshold, ballCollectThreshold,
 	qrdProportionalGain, qrdDerivativeGain, 
 	brushSpeed, firingSpeed, bikeSpeed, diffSpeed, 
-	servoLoadAngle, servoCollectAngle, servoBikeAngle, servoDiffAngle, servoWallCorrectAngle 
+	servoLoadAngle, servoCollectAngle, servoBikeAngle, servoDiffAngle, servoWallRearAngle 
 };
 const int itemCount = 13;
 
@@ -411,13 +413,13 @@ void OverrideState()
 
  	if(strafeDirection == LEFT_DIRECTION)
  	{
- 		SetServo(SERVO_LEFT, 180 - servoBikeAngle.Value());
- 		SetServo(SERVO_RIGHT, servoBikeAngle.Value() - servoWallCorrectAngle.Value());
+ 		SetServo(SERVO_LEFT, 180 - servoBikeAngle.Value() + servoWallFrontAngle.Value());
+ 		SetServo(SERVO_RIGHT, servoBikeAngle.Value() - servoWallRearAngle.Value());
  	}
 	else // strafeDirection == RIGHT_DIRECTION
 	{
-		SetServo(SERVO_LEFT, 180 - servoBikeAngle.Value() + servoWallCorrectAngle.Value());
-		SetServo(SERVO_RIGHT, servoBikeAngle.Value());
+		SetServo(SERVO_LEFT, 180 - servoBikeAngle.Value() + servoWallRearAngle.Value());
+		SetServo(SERVO_RIGHT, servoBikeAngle.Value() - servoWallFrontAngle.Value());
 	}
 }
 
