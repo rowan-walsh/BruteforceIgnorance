@@ -41,14 +41,14 @@
 #define TARGET_DETECT_PIN 1
 #define UNUSED_TARGET_DETECT_PIN 0
 // Digital Inputs
-#define LEFT_SIDE_MICROSWITCH_PIN 5
-#define LEFT_FRONT_MICROSWITCH_PIN 4
-#define RIGHT_SIDE_MICROSWITCH_PIN 7
-#define RIGHT_FRONT_MICROSWITCH_PIN 6
-#define OUTER_LEFT_QRD_PIN 0
-#define INNER_LEFT_QRD_PIN 1
-#define INNER_RIGHT_QRD_PIN 2
-#define OUTER_RIGHT_QRD_PIN 3
+#define LEFT_SIDE_MICROSWITCH_PIN 6
+#define LEFT_FRONT_MICROSWITCH_PIN 7
+#define RIGHT_SIDE_MICROSWITCH_PIN 5
+#define RIGHT_FRONT_MICROSWITCH_PIN 4
+#define OUTER_LEFT_QRD_PIN 3
+#define INNER_LEFT_QRD_PIN 2
+#define INNER_RIGHT_QRD_PIN 1
+#define OUTER_RIGHT_QRD_PIN 0
 // Knobs
 #define MENU_ADJUST_KNOB 6	 // Adjust selected menu item
 #define VALUE_ADJUST_KNOB 7	 // Adjust item value
@@ -122,8 +122,8 @@ bool ballCollected = false;
 MenuItem targetThreshold = MenuItem("T TH", TARGET_THRESHOLD);
 MenuItem ballCollectThreshold = MenuItem("Col TH", BALL_COLLECT_THRESHOLD);
 // QRD gains
-MenuItem qrdProportionalGain = MenuItem("Pgain", QRD_P_GAIN);
-MenuItem qrdDerivativeGain = MenuItem("Dgain", QRD_D_GAIN);
+MenuItem qrdProportionalGain = MenuItem("Q P-Gain", QRD_P_GAIN);
+MenuItem qrdDerivativeGain = MenuItem("Q D-Gain", QRD_D_GAIN);
 // Motor speeds
 MenuItem brushSpeed = MenuItem("Brush Vel", BRUSH_SPEED);
 MenuItem firingSpeed = MenuItem("Fire Vel", FIRING_SPEED);
@@ -265,7 +265,8 @@ inline bool IR(int irPin) {
 	return (analogRead(irPin) > targetThreshold.Value());
 }
 
-inline bool TargetAcquired(){
+// Returns a bool indicating whether a target is detected
+inline bool TargetAcquired() {
 	return (analogRead(TARGET_DETECT_PIN) > targetThreshold.Value());
 }
 
@@ -304,7 +305,7 @@ void ProcessMenu()
  		Print(Microswitch(LEFT_FRONT_MICROSWITCH_PIN,0)); Print(Microswitch(RIGHT_FRONT_MICROSWITCH_PIN,0));
  		Print("s"); Print(Microswitch(LEFT_SIDE_MICROSWITCH_PIN,0)); Print(Microswitch(RIGHT_SIDE_MICROSWITCH_PIN,0));
 
- 		delay(50);
+ 		delay(100);
  		return;
  	}
 
@@ -355,7 +356,10 @@ void OverrideState()
 
  	while(!StopButton())
  	{
- 		Reset(); Print(analogRead(COLLECT_QRD_PIN));
+ 		Reset();
+ 		Print("Arm: ", analogRead(COLLECT_QRD_PIN));
+ 		LCD.setCursor(0,1);
+ 		Print("IR:  ", analogRead(TARGET_DETECT_PIN));
  		if (analogRead(COLLECT_QRD_PIN) < ballCollectThreshold.Value())
  		{
  			delay(500);
