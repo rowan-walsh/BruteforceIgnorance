@@ -574,7 +574,7 @@ void FollowTape(int followDirection) // Looping maneuver
 	float proportional = qrdError * qrdProportionalGain.Value();
 	float derivative = (float)(qrdError - qrdPreviousError) / (float)qrdDeriveCounter * qrdDerivativeGain.Value();
 	float compensationSpeed = proportional + derivative;
-	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * (diffSpeed.Value() + compensationSpeed));
+	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * (diffSpeed.Value() - compensationSpeed));
 	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * (diffSpeed.Value() + compensationSpeed));
 	if(qrdPreviousError != qrdError)
 	{
