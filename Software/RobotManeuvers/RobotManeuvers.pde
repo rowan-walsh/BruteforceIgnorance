@@ -38,17 +38,17 @@
 #define SHOOTING_MOTOR_PIN 3
 // Analog Inputs
 #define COLLECT_QRD_PIN 2
-#define TARGET_DETECT_LEFT_PIN 3
-#define TARGET_DETECT_RIGHT_PIN 4
+#define TARGET_DETECT_PIN 1
+#define UNUSED_TARGET_DETECT_PIN 0
 // Digital Inputs
-#define LEFT_SIDE_MICROSWITCH_PIN 13
-#define LEFT_FRONT_MICROSWITCH_PIN 12
-#define RIGHT_SIDE_MICROSWITCH_PIN 15
-#define RIGHT_FRONT_MICROSWITCH_PIN 14
-#define OUTER_LEFT_QRD_PIN 8
-#define INNER_LEFT_QRD_PIN 9
-#define INNER_RIGHT_QRD_PIN 10
-#define OUTER_RIGHT_QRD_PIN 11
+#define LEFT_SIDE_MICROSWITCH_PIN 5
+#define LEFT_FRONT_MICROSWITCH_PIN 4
+#define RIGHT_SIDE_MICROSWITCH_PIN 7
+#define RIGHT_FRONT_MICROSWITCH_PIN 6
+#define OUTER_LEFT_QRD_PIN 0
+#define INNER_LEFT_QRD_PIN 1
+#define INNER_RIGHT_QRD_PIN 2
+#define OUTER_RIGHT_QRD_PIN 3
 // Knobs
 #define MENU_ADJUST_KNOB 6	 // Adjust selected menu item
 #define VALUE_ADJUST_KNOB 7	 // Adjust item value
@@ -122,8 +122,8 @@ bool ballCollected = false;
 MenuItem targetThreshold = MenuItem("T TH", TARGET_THRESHOLD);
 MenuItem ballCollectThreshold = MenuItem("Col TH", BALL_COLLECT_THRESHOLD);
 // QRD gains
-MenuItem qrdProportionalGain = MenuItem("Q P-Gain", QRD_P_GAIN);
-MenuItem qrdDerivativeGain = MenuItem("Q D-Gain", QRD_D_GAIN);
+MenuItem qrdProportionalGain = MenuItem("Pgain", QRD_P_GAIN);
+MenuItem qrdDerivativeGain = MenuItem("Dgain", QRD_D_GAIN);
 // Motor speeds
 MenuItem brushSpeed = MenuItem("Brush Vel", BRUSH_SPEED);
 MenuItem firingSpeed = MenuItem("Fire Vel", FIRING_SPEED);
@@ -143,9 +143,11 @@ MenuItem items[] =
 	targetThreshold, ballCollectThreshold,
 	qrdProportionalGain, qrdDerivativeGain, 
 	brushSpeed, firingSpeed, bikeSpeed, diffSpeed, 
-	servoLoadAngle, servoCollectAngle, servoBikeAngle, servoDiffAngle, servoWallRearAngle 
+	servoLoadAngle, servoCollectAngle, servoBikeAngle, servoDiffAngle, servoWallRearAngle, servoWallFrontAngle
 };
-const int itemCount = 13;
+const int itemCount = 14;
+
+//
 
 const int lcdRefreshPeriod = 20; // Update LCD screen every n iterations. Larger = fewer updates. Smaller = flicker
 unsigned int lcdRefreshCount = 0; // Current iteration. Do not change this value
@@ -165,23 +167,23 @@ void loop()
 	switch(maneuverState)
 	{
 		case MENU_STATE:
-		ProcessMenu();
+			ProcessMenu();
 		break;
 		case WALL_FOLLOWING_STATE:
-		WallFollow();
+			WallFollow();
 		break;
 		case TAPE_FOLLOW_DOWN_STATE:
-		FollowTape(FOLLOW_DOWN_DIRECTION);
+			FollowTape(FOLLOW_DOWN_DIRECTION);
 		break;
 		case COLLECTION_STATE:
-		Collection();
+			Collection();
 		break;
 		case TAPE_FOLLOW_UP_STATE:
-		FollowTape(FOLLOW_UP_DIRECTION);
+			FollowTape(FOLLOW_UP_DIRECTION);
 		break;
 		default:
-		Reset();
-		Print("Error: no state");
+			Reset();
+			Print("Error: no state");
 		break;
 	}
 }
@@ -264,7 +266,7 @@ inline bool IR(int irPin) {
 }
 
 inline bool TargetAcquired(){
-	return (analogRead(TARGET_DETECT_LEFT_PIN) > targetThreshold.Value());
+	return (analogRead(TARGET_DETECT_PIN) > targetThreshold.Value());
 }
 
 void Update() // Update - Menu and LCD
@@ -287,15 +289,31 @@ void ProcessMenu()
 
 	// Determine selected item and get knob values
 	int knobValue = knob(VALUE_ADJUST_KNOB);
-	int selectedItem = knob(MENU_ADJUST_KNOB) / (1024 / (itemCount - 1));
-	if (selectedItem > itemCount - 1) selectedItem = itemCount - 1; // Normalize the selection
+	int selectedItem = knob(MENU_ADJUST_KNOB) / (1024 / (itemCount));
+	if (selectedItem > itemCount) selectedItem = itemCount; // Normalize the selection
+
+	// Display comparator board states
+ 	if (selectedItem == itemCount)
+ 	{
+ 		Reset();
+ 		Print("QRDs: ");
+ 		Print(QRD(OUTER_LEFT_QRD_PIN)); Print(QRD(INNER_LEFT_QRD_PIN));
+ 		Print(QRD(INNER_RIGHT_QRD_PIN)); Print(QRD(OUTER_RIGHT_QRD_PIN));
+ 		LCD.setCursor(0,1);
+ 		Print("Switches: f");
+ 		Print(Microswitch(LEFT_FRONT_MICROSWITCH_PIN,0)); Print(Microswitch(RIGHT_FRONT_MICROSWITCH_PIN,0));
+ 		Print("s"); Print(Microswitch(LEFT_SIDE_MICROSWITCH_PIN,0)); Print(Microswitch(RIGHT_SIDE_MICROSWITCH_PIN,0));
+
+ 		delay(50);
+ 		return;
+ 	}
 
 	// Display the item information
 	Reset(); 
 	Print(items[selectedItem].Name()); Print(" "); Print(items[selectedItem].Value());
 
-	if (selectedItem == 0) Print(" ", analogRead(TARGET_DETECT_LEFT_PIN)); 
-	else if (selectedItem == 1) Print(" ", analogRead(COLLECT_QRD_PIN)); 
+	if (selectedItem == 0) Print(" ", analogRead(TARGET_DETECT_PIN)); 
+	else if (selectedItem == 1) Print(" ", analogRead(COLLECT_QRD_PIN));
 
 	LCD.setCursor(0,1);
 	Print("Set to ", knobValue); Print("?");
@@ -348,6 +366,9 @@ void OverrideState()
  			SetServo(SERVO_BALL, servoCollectAngle.Value());
  		delay(100);
  	}
+
+ 	motor.stop(BRUSH_MOTOR_PIN);
+ 	motor.stop(SHOOTING_MOTOR_PIN);
  }
 
  void WallFollowSensorUpdate()
