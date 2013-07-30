@@ -48,3 +48,6 @@ HELPFUL FUNCTIONS
 
 CAN'T EXIT TO MENU FROM DISCRETE MANEUVERS
 	Need to add Update to all loops in discrete maneuvers.
+
+LINE FOLLOWING BUG
+	Line following was incorrectly using the compensation speed, fixed it so that the compensation speed is applied to each wheel in opposite directions.

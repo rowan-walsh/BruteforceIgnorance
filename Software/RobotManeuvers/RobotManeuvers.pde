@@ -41,10 +41,10 @@
 #define TARGET_DETECT_PIN 1
 #define UNUSED_TARGET_DETECT_PIN 0
 // Digital Inputs
-#define LEFT_SIDE_MICROSWITCH_PIN 6
-#define LEFT_FRONT_MICROSWITCH_PIN 7
-#define RIGHT_SIDE_MICROSWITCH_PIN 5
-#define RIGHT_FRONT_MICROSWITCH_PIN 4
+#define LEFT_SIDE_MICROSWITCH_PIN 7
+#define LEFT_FRONT_MICROSWITCH_PIN 6
+#define RIGHT_SIDE_MICROSWITCH_PIN 4
+#define RIGHT_FRONT_MICROSWITCH_PIN 5
 #define OUTER_LEFT_QRD_PIN 3
 #define INNER_LEFT_QRD_PIN 2
 #define INNER_RIGHT_QRD_PIN 1
@@ -106,6 +106,7 @@ bool backTouchWall = false;
 
 unsigned long timeOfLastFiring = 0;
 bool isEmpty = false;
+bool leavingWall = false;
 
 // Target Finding
 bool targetFound = false;
@@ -253,10 +254,7 @@ inline bool QRD(int qrdPin) {
 }
 
 // Returns a bool indicating whether the collection QRD is being triggered by a ball
-inline bool Armed(int debounceTime = 30)
-{
-	if (!analogRead(COLLECT_QRD_PIN) < ballCollectThreshold.Value()) return false;
-	delay(debounceTime);
+inline bool Armed() {
 	return (analogRead(COLLECT_QRD_PIN) < ballCollectThreshold.Value());
 }
 
@@ -266,7 +264,10 @@ inline bool IR(int irPin) {
 }
 
 // Returns a bool indicating whether a target is detected
-inline bool TargetAcquired() {
+bool TargetAcquired(int debounceTime = 15)
+{
+	if(analogRead(TARGET_DETECT_PIN) <= targetThreshold.Value()) return false;
+	delay(debounceTime);
 	return (analogRead(TARGET_DETECT_PIN) > targetThreshold.Value());
 }
 
@@ -285,16 +286,16 @@ void ProcessMenu()
 {
 	motor.stop_all();
 
-	if (knob(VALUE_ADJUST_KNOB) == 0 && knob(MENU_ADJUST_KNOB) == 0 && StopButton(2000)) 
+	if(knob(VALUE_ADJUST_KNOB) == 0 && knob(MENU_ADJUST_KNOB) == 0 && StopButton(2000)) 
 		OverrideState(); // Unlock secret menu
 
 	// Determine selected item and get knob values
 	int knobValue = knob(VALUE_ADJUST_KNOB);
 	int selectedItem = knob(MENU_ADJUST_KNOB) / (1024 / (itemCount));
-	if (selectedItem > itemCount) selectedItem = itemCount; // Normalize the selection
+	if(selectedItem > itemCount) selectedItem = itemCount; // Normalize the selection
 
 	// Display comparator board states
- 	if (selectedItem == itemCount)
+ 	if(selectedItem == itemCount)
  	{
  		Reset();
  		Print("QRDs: ");
@@ -302,8 +303,8 @@ void ProcessMenu()
  		Print(QRD(INNER_RIGHT_QRD_PIN)); Print(QRD(OUTER_RIGHT_QRD_PIN));
  		LCD.setCursor(0,1);
  		Print("Switches: f");
- 		Print(Microswitch(LEFT_FRONT_MICROSWITCH_PIN,0)); Print(Microswitch(RIGHT_FRONT_MICROSWITCH_PIN,0));
- 		Print("s"); Print(Microswitch(LEFT_SIDE_MICROSWITCH_PIN,0)); Print(Microswitch(RIGHT_SIDE_MICROSWITCH_PIN,0));
+ 		Print(Microswitch(LEFT_FRONT_MICROSWITCH_PIN,10)); Print(Microswitch(RIGHT_FRONT_MICROSWITCH_PIN,10));
+ 		Print("s"); Print(Microswitch(LEFT_SIDE_MICROSWITCH_PIN,10)); Print(Microswitch(RIGHT_SIDE_MICROSWITCH_PIN,10));
 
  		delay(100);
  		return;
@@ -313,8 +314,8 @@ void ProcessMenu()
 	Reset(); 
 	Print(items[selectedItem].Name()); Print(" "); Print(items[selectedItem].Value());
 
-	if (selectedItem == 0) Print(" ", analogRead(TARGET_DETECT_PIN)); 
-	else if (selectedItem == 1) Print(" ", analogRead(COLLECT_QRD_PIN));
+	if(selectedItem == 0) Print(" ", analogRead(TARGET_DETECT_PIN)); 
+	else if(selectedItem == 1) Print(" ", analogRead(COLLECT_QRD_PIN));
 
 	LCD.setCursor(0,1);
 	Print("Set to ", knobValue); Print("?");
@@ -332,7 +333,7 @@ void OverrideState()
 
 	while(!StartButton())
 	{
-		if (knob(VALUE_ADJUST_KNOB) == 0 && knob(MENU_ADJUST_KNOB) == 0 && StopButton(2000)) 
+		if(knob(VALUE_ADJUST_KNOB) == 0 && knob(MENU_ADJUST_KNOB) == 0 && StopButton(2000)) 
 			SecretFiringLevel(); // Unlock secret menu
 
  		int selectedState = knob(VALUE_ADJUST_KNOB) / 256 + 1; // Allow user to select states 1-4 (not zero)
@@ -360,7 +361,7 @@ void OverrideState()
  		Print("Arm: ", analogRead(COLLECT_QRD_PIN));
  		LCD.setCursor(0,1);
  		Print("IR:  ", analogRead(TARGET_DETECT_PIN));
- 		if (analogRead(COLLECT_QRD_PIN) < ballCollectThreshold.Value())
+ 		if(Armed())
  		{
  			delay(500);
  			SetServo(SERVO_BALL, servoLoadAngle.Value());
@@ -388,10 +389,20 @@ void OverrideState()
  	rightFront = Microswitch(RIGHT_FRONT_MICROSWITCH_PIN);
 
 	// Handle wall collisions
- 	if (leftSide && strafeDirection == LEFT_DIRECTION) strafeDirection == RIGHT_DIRECTION;
- 	else if (rightSide && strafeDirection == RIGHT_DIRECTION) strafeDirection == LEFT_DIRECTION;
+ 	if(leftSide && (strafeDirection == LEFT_DIRECTION))
+ 	{
+ 		strafeDirection = RIGHT_DIRECTION;
+ 		leavingWall = isEmpty;
+ 	}
+ 	else if(rightSide && (strafeDirection == RIGHT_DIRECTION))
+ 	{
+ 		strafeDirection = LEFT_DIRECTION;
+ 		leavingWall = isEmpty;
+ 	}
+ 	else leavingWall = false;
 
- 	if(!isEmpty && TargetAcquired()) targetFound = true;
+ 	// Handle target detection
+ 	if((!isEmpty) && TargetAcquired()) targetFound = true;
  	else targetFound = false;
  }
 
@@ -401,14 +412,17 @@ void OverrideState()
  	SetServo(SERVO_BALL, servoCollectAngle.Value());
 
 	// End the wall following maneuver
- 	if ((leftSide || rightSide) && isEmpty)
+ 	if(leavingWall)
  	{
+ 		Reset(); Print("Leaving wall");
+ 		leavingWall = false;
+
  		unsigned long startTime = millis();
  		while (millis() < startTime + WALL_FOLLOW_END_DELAY)
  		{
  			Strafe();
  			WallFollowSensorUpdate();
- 			if (StopButton(3000)) return; // escape condition
+ 			if (StopButton(1000)) return; // escape condition
  		}
  		MoveOffWall();
  		AcquireTapeFromWall();
@@ -417,20 +431,19 @@ void OverrideState()
  	}
 
 	// FIRE!
- 	if(TargetAcquired() && Armed())
+ 	if(targetFound)
  	{
  		Reset(); Print("Firing!");
- 		Fire();
  		targetFound = false;
+ 		Fire();
  	}
 
  	Strafe();
  }
 
-// Strafes along front wall while performing ON/OFF distance correction
+// trafes along front wall while performing ON/OFF distance correction
  void Strafe()
  {
- 	Reset(); Print("Strafing");
 	// Engage collection, set strafing speeds
  	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
  	motor.speed(LEFT_MOTOR_PIN, strafeDirection * bikeSpeed.Value());
@@ -446,6 +459,14 @@ void OverrideState()
 		SetServo(SERVO_LEFT, 180 - servoBikeAngle.Value() + servoWallRearAngle.Value());
 		SetServo(SERVO_RIGHT, servoBikeAngle.Value() - servoWallFrontAngle.Value());
 	}
+
+	// Show steering information on screen
+	if(lcdRefreshCount > 2) return;
+	Reset();
+	Print("Strafing ");
+	Print((strafeDirection == LEFT_DIRECTION) ? "left" : "right");
+	LCD.setCursor(0,1);
+	Print(analogRead(TARGET_DETECT_PIN));
 }
 
 void Fire() 
@@ -458,15 +479,15 @@ void Fire()
 	motor.speed(SHOOTING_MOTOR_PIN, firingSpeed.Value());
 
 	// Load firing mechanism
-	Reset(); Print("Loading ball");
+	LCD.setCursor(0,1);
+	Print("Loading ball");
 	SetServo(SERVO_BALL, servoLoadAngle.Value());
 	
 	while(Armed())
 	{
 		delay(10);
-		if (StopButton(3000)) return; // escape condition
+		if (StopButton(1000)) return; // escape condition
 	}
-	Reset();
 	SetServo(SERVO_BALL, servoCollectAngle.Value()); // return arm to collect position
 
 	// Stop firing rotor motor
@@ -480,8 +501,6 @@ void Fire()
 // Exectutes a controlled maneuver to exit the wall from a wall following position
 void MoveOffWall()
 {
-	Reset(); Print("Leaving wall");
-
 	// Engage collection and halt navigation
 	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
 	motor.stop(LEFT_MOTOR_PIN); motor.stop(RIGHT_MOTOR_PIN);
@@ -498,8 +517,8 @@ void MoveOffWall()
 	delay(MOVE_OFF_WALL_DELAY);
 
 	// Make a controlled turn
-	motor.speed(LEFT_MOTOR_PIN, diffSpeed.Value() * -strafeDirection);
-	motor.speed(RIGHT_MOTOR_PIN, diffSpeed.Value() * -strafeDirection);
+	motor.speed(LEFT_MOTOR_PIN, diffSpeed.Value() * -1 * strafeDirection);
+	motor.speed(RIGHT_MOTOR_PIN, diffSpeed.Value() * -1 * strafeDirection);
 	delay(TURN_135_DEG_DELAY);
 }
 
@@ -586,7 +605,7 @@ void FollowTape(int followDirection) // Looping maneuver
 	// Show steering information on screen
 	if(lcdRefreshCount > 2) return;
 	Reset();
-	Print("Steer speed:", compensationSpeed);
+	Print("Steering: ", compensationSpeed);
 	LCD.setCursor(0, 1);
 	Print("Error: ", qrdError);
 }
