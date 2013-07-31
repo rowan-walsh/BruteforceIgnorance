@@ -51,3 +51,9 @@ CAN'T EXIT TO MENU FROM DISCRETE MANEUVERS
 
 LINE FOLLOWING BUG
 	Line following was incorrectly using the compensation speed, fixed it so that the compensation speed is applied to each wheel in opposite directions.
+
+NO MORE SECRET MENU
+	Added secret (state) menu to regular menu.  Secret firing level is now state 5, accessed through the state menu
+
+ADDED DIFFERENT VELOCITIES
+	For line following up and down the slope.

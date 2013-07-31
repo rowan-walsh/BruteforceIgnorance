@@ -294,7 +294,7 @@ void ProcessMenu()
 
 	// Determine selected item and get knob values
 	int knobValue = knob(VALUE_ADJUST_KNOB);
-	int selectedItem = knob(MENU_ADJUST_KNOB) / (1024 / (itemCount + 1));
+	int selectedItem = knob(MENU_ADJUST_KNOB) / (1024 / (itemCount + 2));
 	if(selectedItem > itemCount + 1) selectedItem = itemCount + 1; // Normalize the selection
 
 	// Display comparator board states
@@ -314,12 +314,13 @@ void ProcessMenu()
 	}
 	else if(selectedItem == itemCount + 1)
 	{
-		int selectedState = knobValue / 205 + 1;	// Allow user to select states 1-4 (not zero)
+		int selectedState = knobValue / 205 + 1;	// Allow user to select states 1-5 (not zero)
  		Reset(); 
  		Print("Current state: ", lastState); LCD.setCursor(0,1); 
  		Print("Set to ", selectedState); Print(" ?");
  		if(StopButton()) lastState = selectedState;
  		delay(100);
+ 		return;
 	}
 
 	// Display the item information
