@@ -53,8 +53,8 @@
 #define MENU_ADJUST_KNOB 6	 // Adjust selected menu item
 #define VALUE_ADJUST_KNOB 7	 // Adjust item value
 // Wall following
-#define LEFT_DIRECTION -1 
-#define RIGHT_DIRECTION 1
+#define LEFT_DIRECTION 1 
+#define RIGHT_DIRECTION -1
 // Differential steering
 #define LEFT_DIFF_MULT 1
 #define RIGHT_DIFF_MULT -1
@@ -168,23 +168,23 @@ void loop()
 	switch(maneuverState)
 	{
 		case MENU_STATE:
-			ProcessMenu();
+		ProcessMenu();
 		break;
 		case WALL_FOLLOWING_STATE:
-			WallFollow();
+		WallFollow();
 		break;
 		case TAPE_FOLLOW_DOWN_STATE:
-			FollowTape(FOLLOW_DOWN_DIRECTION);
+		FollowTape(FOLLOW_DOWN_DIRECTION);
 		break;
 		case COLLECTION_STATE:
-			Collection();
+		Collection();
 		break;
 		case TAPE_FOLLOW_UP_STATE:
-			FollowTape(FOLLOW_UP_DIRECTION);
+		FollowTape(FOLLOW_UP_DIRECTION);
 		break;
 		default:
-			Reset();
-			Print("Error: no state");
+		Reset();
+		Print("Error: no state");
 		break;
 	}
 }
@@ -295,20 +295,20 @@ void ProcessMenu()
 	if(selectedItem > itemCount) selectedItem = itemCount; // Normalize the selection
 
 	// Display comparator board states
- 	if(selectedItem == itemCount)
- 	{
- 		Reset();
- 		Print("QRDs: ");
- 		Print(QRD(OUTER_LEFT_QRD_PIN)); Print(QRD(INNER_LEFT_QRD_PIN));
- 		Print(QRD(INNER_RIGHT_QRD_PIN)); Print(QRD(OUTER_RIGHT_QRD_PIN));
- 		LCD.setCursor(0,1);
- 		Print("Switches: f");
- 		Print(Microswitch(LEFT_FRONT_MICROSWITCH_PIN,10)); Print(Microswitch(RIGHT_FRONT_MICROSWITCH_PIN,10));
- 		Print("s"); Print(Microswitch(LEFT_SIDE_MICROSWITCH_PIN,10)); Print(Microswitch(RIGHT_SIDE_MICROSWITCH_PIN,10));
+	if(selectedItem == itemCount)
+	{
+		Reset();
+		Print("QRDs: ");
+		Print(QRD(OUTER_LEFT_QRD_PIN)); Print(QRD(INNER_LEFT_QRD_PIN));
+		Print(QRD(INNER_RIGHT_QRD_PIN)); Print(QRD(OUTER_RIGHT_QRD_PIN));
+		LCD.setCursor(0,1);
+		Print("Switches: f");
+		Print(Microswitch(LEFT_FRONT_MICROSWITCH_PIN,10)); Print(Microswitch(RIGHT_FRONT_MICROSWITCH_PIN,10));
+		Print("s"); Print(Microswitch(LEFT_SIDE_MICROSWITCH_PIN,10)); Print(Microswitch(RIGHT_SIDE_MICROSWITCH_PIN,10));
 
- 		delay(100);
- 		return;
- 	}
+		delay(100);
+		return;
+	}
 
 	// Display the item information
 	Reset(); 
@@ -393,11 +393,21 @@ void OverrideState()
  	{
  		strafeDirection = RIGHT_DIRECTION;
  		leavingWall = isEmpty;
+ 		SetServo(SERVO_LEFT, 180 - servoBikeAngle.Value() + servoWallRearAngle.Value());
+ 		SetServo(SERVO_RIGHT, servoBikeAngle.Value() - servoWallFrontAngle.Value());
+ 		motor.stop(LEFT_MOTOR_PIN);
+ 		motor.stop(RIGHT_MOTOR_PIN);
+ 		delay(500);
  	}
  	else if(rightSide && (strafeDirection == RIGHT_DIRECTION))
  	{
  		strafeDirection = LEFT_DIRECTION;
  		leavingWall = isEmpty;
+ 		SetServo(SERVO_LEFT, 180 - servoBikeAngle.Value() + servoWallFrontAngle.Value());
+ 		SetServo(SERVO_RIGHT, servoBikeAngle.Value() - servoWallRearAngle.Value());
+ 		motor.stop(LEFT_MOTOR_PIN);
+ 		motor.stop(RIGHT_MOTOR_PIN);
+ 		delay(500);
  	}
  	else leavingWall = false;
 
@@ -593,8 +603,19 @@ void FollowTape(int followDirection) // Looping maneuver
 	float proportional = qrdError * qrdProportionalGain.Value();
 	float derivative = (float)(qrdError - qrdPreviousError) / (float)qrdDeriveCounter * qrdDerivativeGain.Value();
 	float compensationSpeed = proportional + derivative;
-	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * (diffSpeed.Value() - compensationSpeed));
-	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * (diffSpeed.Value() + compensationSpeed));
+	
+	if (qrdError >= 0) 
+	{
+		motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * (diffSpeed.Value() + compensationSpeed));
+		motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * diffSpeed.Value());
+	}
+	else
+	{
+		motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * diffSpeed.Value());
+		motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * (diffSpeed.Value() - compensationSpeed));
+	}
+
+
 	if(qrdPreviousError != qrdError)
 	{
 		qrdPreviousError = qrdError;
