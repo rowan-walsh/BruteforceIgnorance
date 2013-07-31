@@ -80,6 +80,7 @@
 #define TAPE_FOLLOW_DOWN_STATE 2
 #define COLLECTION_STATE 3
 #define TAPE_FOLLOW_UP_STATE 4
+#define SECRET_LEVEL_STATE 5
 // Loop behaviour switches
 #define FOLLOW_DOWN_DIRECTION 0
 #define FOLLOW_UP_DIRECTION 1
@@ -168,23 +169,26 @@ void loop()
 	switch(maneuverState)
 	{
 		case MENU_STATE:
-		ProcessMenu();
+			ProcessMenu();
 		break;
 		case WALL_FOLLOWING_STATE:
-		WallFollow();
+			WallFollow();
 		break;
 		case TAPE_FOLLOW_DOWN_STATE:
-		FollowTape(FOLLOW_DOWN_DIRECTION);
+			FollowTape(FOLLOW_DOWN_DIRECTION);
 		break;
 		case COLLECTION_STATE:
-		Collection();
+			Collection();
 		break;
 		case TAPE_FOLLOW_UP_STATE:
-		FollowTape(FOLLOW_UP_DIRECTION);
+			FollowTape(FOLLOW_UP_DIRECTION);
+		break;
+		case SECRET_LEVEL_STATE:
+			SecretFiringLevel();
 		break;
 		default:
-		Reset();
-		Print("Error: no state");
+			Reset();
+			Print("Error: no state");
 		break;
 	}
 }
@@ -286,13 +290,10 @@ void ProcessMenu()
 {
 	motor.stop_all();
 
-	if(knob(VALUE_ADJUST_KNOB) == 0 && knob(MENU_ADJUST_KNOB) == 0 && StopButton(2000)) 
-		OverrideState(); // Unlock secret menu
-
 	// Determine selected item and get knob values
 	int knobValue = knob(VALUE_ADJUST_KNOB);
-	int selectedItem = knob(MENU_ADJUST_KNOB) / (1024 / (itemCount));
-	if(selectedItem > itemCount) selectedItem = itemCount; // Normalize the selection
+	int selectedItem = knob(MENU_ADJUST_KNOB) / (1024 / (itemCount + 1));
+	if(selectedItem > itemCount + 1) selectedItem = itemCount + 1; // Normalize the selection
 
 	// Display comparator board states
 	if(selectedItem == itemCount)
@@ -308,6 +309,15 @@ void ProcessMenu()
 
 		delay(100);
 		return;
+	}
+	else if(selectedItem == itemCount + 1)
+	{
+		int selectedState = knobValue / 205 + 1;	// Allow user to select states 1-4 (not zero)
+ 		Reset(); 
+ 		Print("Current state: ", lastState); LCD.setCursor(0,1); 
+ 		Print("Set to ", selectedState); Print(" ?");
+ 		if(StopButton()) lastState = selectedState;
+ 		delay(100);
 	}
 
 	// Display the item information
@@ -325,55 +335,24 @@ void ProcessMenu()
 	delay(50);
 }
 
-void OverrideState()
-{
-	Reset();
-	Print("Secret menu"); LCD.setCursor(0,1); Print("unlocked");
-	delay(1000);
-
-	while(!StartButton())
-	{
-		if(knob(VALUE_ADJUST_KNOB) == 0 && knob(MENU_ADJUST_KNOB) == 0 && StopButton(2000)) 
-			SecretFiringLevel(); // Unlock secret menu
-
- 		int selectedState = knob(VALUE_ADJUST_KNOB) / 256 + 1; // Allow user to select states 1-4 (not zero)
- 		Reset(); 
- 		Print("Current: ", lastState); LCD.setCursor(0,1); 
- 		Print("Set to ", selectedState); Print("?");
- 		if(StopButton()) lastState = selectedState;
- 		delay(50);
- 	};
- }
-
  void SecretFiringLevel()
  {
- 	Reset();
- 	Print("Secret level"); LCD.setCursor(0,1); Print("unlocked");
- 	delay(1000);
- 	Reset();
-
- 	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
+  	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
  	motor.speed(SHOOTING_MOTOR_PIN, firingSpeed.Value());
 
- 	while(!StopButton())
- 	{
- 		Reset();
- 		Print("Arm: ", analogRead(COLLECT_QRD_PIN));
- 		LCD.setCursor(0,1);
- 		Print("IR:  ", analogRead(TARGET_DETECT_PIN));
- 		if(Armed())
- 		{
- 			delay(500);
- 			SetServo(SERVO_BALL, servoLoadAngle.Value());
- 			delay(1000);
- 		}
- 		else 
- 			SetServo(SERVO_BALL, servoCollectAngle.Value());
- 		delay(100);
- 	}
+	Reset();
+	Print("Arm: ", analogRead(COLLECT_QRD_PIN));
+	LCD.setCursor(0,1);
+	Print("IR:  ", analogRead(TARGET_DETECT_PIN));
+	if(Armed())
+	{
+		delay(500);
+		SetServo(SERVO_BALL, servoLoadAngle.Value());
+		delay(1000);
+	}
+	else SetServo(SERVO_BALL, servoCollectAngle.Value());
 
- 	motor.stop(BRUSH_MOTOR_PIN);
- 	motor.stop(SHOOTING_MOTOR_PIN);
+	delay(100);
  }
 
  void WallFollowSensorUpdate()
