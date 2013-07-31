@@ -17,7 +17,8 @@
 #define BRUSH_SPEED 8
 #define FIRING_SPEED 9
 #define BIKE_SPEED 10
-#define DIFF_SPEED 11
+#define DIFF_UP_SPEED 11
+#define DIFF_DOWN_SPEED 3
 // Servo angles
 #define SERVO_LOAD_ANGLE 12
 #define SERVO_COLLECT_ANGLE 13
@@ -130,12 +131,13 @@ MenuItem qrdDerivativeGain = MenuItem("Q D-Gain", QRD_D_GAIN);
 MenuItem brushSpeed = MenuItem("Brush Vel", BRUSH_SPEED);
 MenuItem firingSpeed = MenuItem("Fire Vel", FIRING_SPEED);
 MenuItem bikeSpeed = MenuItem("Bike Vel", BIKE_SPEED);
-MenuItem diffSpeed = MenuItem("Diff Vel", DIFF_SPEED);
+MenuItem diffUpSpeed = MenuItem("Dif-U Vel", DIFF_UP_SPEED);
+MenuItem diffDownSpeed = MenuItem("Dif-D Vel", DIFF_DOWN_SPEED);
 // Servo angles
 MenuItem servoLoadAngle = MenuItem("Load ang", SERVO_LOAD_ANGLE);
 MenuItem servoCollectAngle = MenuItem("Col ang", SERVO_COLLECT_ANGLE);
 MenuItem servoBikeAngle = MenuItem("Bike ang", SERVO_BIKE_ANGLE);
-MenuItem servoDiffAngle = MenuItem("Diff ang", SERVO_DIFF_ANGLE);
+MenuItem servoDiffAngle = MenuItem("Dif ang", SERVO_DIFF_ANGLE);
 MenuItem servoWallRearAngle = MenuItem("Rear ang", SERVO_WALL_REAR_ANGLE);
 MenuItem servoWallFrontAngle = MenuItem("Front ang", SERVO_WALL_FRONT_ANGLE);
 
@@ -144,10 +146,10 @@ MenuItem items[] =
 {
 	targetThreshold, ballCollectThreshold,
 	qrdProportionalGain, qrdDerivativeGain, 
-	brushSpeed, firingSpeed, bikeSpeed, diffSpeed, 
+	brushSpeed, firingSpeed, bikeSpeed, diffUpSpeed, diffDownSpeed, 
 	servoLoadAngle, servoCollectAngle, servoBikeAngle, servoDiffAngle, servoWallRearAngle, servoWallFrontAngle
 };
-const int itemCount = 14;
+const int itemCount = 15;
 
 //
 
@@ -501,21 +503,21 @@ void MoveOffWall()
 	delay(SERVO_TRANSFORM_DELAY);  
 
 	// Make a controlled reverse
-	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * DIFF_REVERSE * diffSpeed.Value());
-	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * DIFF_REVERSE * diffSpeed.Value());
+	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * DIFF_REVERSE * diffDownSpeed.Value());
+	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * DIFF_REVERSE * diffDownSpeed.Value());
 	delay(MOVE_OFF_WALL_DELAY);
 
 	// Make a controlled turn
-	motor.speed(LEFT_MOTOR_PIN, diffSpeed.Value() * -1 * strafeDirection);
-	motor.speed(RIGHT_MOTOR_PIN, diffSpeed.Value() * -1 * strafeDirection);
+	motor.speed(LEFT_MOTOR_PIN, diffDownSpeed.Value() * -1 * strafeDirection);
+	motor.speed(RIGHT_MOTOR_PIN, diffDownSpeed.Value() * -1 * strafeDirection);
 	delay(TURN_135_DEG_DELAY);
 }
 
 void AcquireTapeFromWall()
 {
 	Reset(); Print("Acquiring Tape");
-	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * diffSpeed.Value());
-	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * diffSpeed.Value());
+	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * diffDownSpeed.Value());
+	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * diffDownSpeed.Value());
 
 	do
 	{
@@ -553,6 +555,8 @@ void FollowTape(int followDirection) // Looping maneuver
 	SetServo(SERVO_LEFT, 180 - servoDiffAngle.Value());
 	SetServo(SERVO_RIGHT,servoDiffAngle.Value());
 
+	int baseSpeed = (followDirection == FOLLOW_UP_DIRECTION) ? diffUpSpeed.Value() : diffDownSpeed.Value();
+
 	// If the end has been found,
 	if(endFound)
 	{
@@ -565,7 +569,7 @@ void FollowTape(int followDirection) // Looping maneuver
 		}
 		else if(followDirection == FOLLOW_DOWN_DIRECTION)	// while following tape down,
 		{
-			SquareTouch();										// square to collection wall
+			SquareTouch(diffDownSpeed.Value());					// square to collection wall
 			maneuverState = COLLECTION_STATE;					// begin collection maneuver
 			endFound = false;
 			return;
@@ -585,13 +589,13 @@ void FollowTape(int followDirection) // Looping maneuver
 	
 	if (qrdError >= 0) 
 	{
-		motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * (diffSpeed.Value() + compensationSpeed));
-		motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * diffSpeed.Value());
+		motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * (baseSpeed + compensationSpeed));
+		motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * baseSpeed);
 	}
 	else
 	{
-		motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * diffSpeed.Value());
-		motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * (diffSpeed.Value() - compensationSpeed));
+		motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * baseSpeed);
+		motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * (baseSpeed - compensationSpeed));
 	}
 
 
@@ -610,7 +614,7 @@ void FollowTape(int followDirection) // Looping maneuver
 	Print("Error: ", qrdError);
 }
 
-void SquareTouch()
+void SquareTouch(int baseSpeed)
 {
 	Reset(); 
 	Print("Wall found,"); LCD.setCursor(0,1);
@@ -623,8 +627,8 @@ void SquareTouch()
 		rightFront = Microswitch(RIGHT_FRONT_MICROSWITCH_PIN);
 		
 		// Disengage motors when touching wall
-		int leftSpeed = leftFront ? 0 : LEFT_DIFF_MULT * diffSpeed.Value(); 
-		int rightSpeed = rightFront ? 0 : RIGHT_DIFF_MULT * diffSpeed.Value();
+		int leftSpeed = leftFront ? 0 : LEFT_DIFF_MULT * baseSpeed; 
+		int rightSpeed = rightFront ? 0 : RIGHT_DIFF_MULT * baseSpeed;
 		motor.speed(LEFT_MOTOR_PIN, leftSpeed);
 		motor.speed(RIGHT_MOTOR_PIN, rightSpeed);
 
@@ -658,8 +662,8 @@ void BumpCollect()
 
 	// Engage collection and reverse navigation motors
 	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value()); // Engage collection	
-	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * DIFF_REVERSE * diffSpeed.Value());
-	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * DIFF_REVERSE * diffSpeed.Value());
+	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * DIFF_REVERSE * diffUpSpeed.Value());
+	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * DIFF_REVERSE * diffUpSpeed.Value());
 	delay(COLLECTION_REVERSE_DELAY);
 	
 	// Disengage navigation motors
@@ -667,7 +671,7 @@ void BumpCollect()
 	motor.stop(RIGHT_MOTOR_PIN);
 
 	delay(COLLECTION_DELAY);
-	SquareTouch();
+	SquareTouch(diffDownSpeed.Value());
 }
 
 void AcquireTapeFromCollect() 
@@ -679,8 +683,8 @@ void AcquireTapeFromCollect()
 	Print("Aquiring tape...");
 
 	// Back up a certain distance
-	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * DIFF_REVERSE * diffSpeed.Value());
-	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * DIFF_REVERSE * diffSpeed.Value());
+	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * DIFF_REVERSE * diffUpSpeed.Value());
+	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * DIFF_REVERSE * diffUpSpeed.Value());
 	delay(COLLECTION_REVERSE_DELAY);
 
 	// Stop Motors
@@ -688,8 +692,8 @@ void AcquireTapeFromCollect()
 	motor.stop(RIGHT_MOTOR_PIN);
 
 	// Spin about 135 degrees
-	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * diffSpeed.Value());
-	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * DIFF_REVERSE * diffSpeed.Value());
+	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * diffUpSpeed.Value());
+	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * DIFF_REVERSE * diffUpSpeed.Value());
 	delay(TURN_135_DEG_DELAY);
 
 	// Wait until tape is detected
@@ -711,5 +715,5 @@ void AcquireWallFromTape()
 	Reset(); 
 	Print("Tape ended,"); LCD.setCursor(0,1);
 	Print("Finding Wall...");
-	SquareTouch();
+	SquareTouch(diffUpSpeed.Value());
 }
