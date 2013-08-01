@@ -10,6 +10,7 @@
 // Light sensors
 #define TARGET_THRESHOLD 1
 #define BALL_COLLECT_THRESHOLD 2
+#define BREAK_BEAM_THRESHOLD 4
 // Gain parameters
 #define QRD_P_GAIN 6
 #define QRD_D_GAIN 7
@@ -38,6 +39,7 @@
 #define BRUSH_MOTOR_PIN 2
 #define SHOOTING_MOTOR_PIN 3
 // Analog Inputs
+#define BREAK_BEAM_SENSOR 3
 #define COLLECT_QRD_PIN 2
 #define TARGET_IR_PIN 1
 #define HOME_BEACON_IR_PIN 0
@@ -124,6 +126,7 @@ bool ballCollected = false;
 // Thresholds
 MenuItem targetThreshold = MenuItem("T TH", TARGET_THRESHOLD);
 MenuItem ballCollectThreshold = MenuItem("Col TH", BALL_COLLECT_THRESHOLD);
+MenuItem breakBeamThreshold = MenuItem("BB TH", BREAK_BEAM_THRESHOLD);
 // QRD gains
 MenuItem qrdProportionalGain = MenuItem("Q P-Gain", QRD_P_GAIN);
 MenuItem qrdDerivativeGain = MenuItem("Q D-Gain", QRD_D_GAIN);
@@ -144,12 +147,12 @@ MenuItem servoWallFrontAngle = MenuItem("Front ang", SERVO_WALL_FRONT_ANGLE);
 // Load menu items into an array
 MenuItem items[] = 
 {
-	targetThreshold, ballCollectThreshold,
+	targetThreshold, ballCollectThreshold, breakBeamThreshold,
 	qrdProportionalGain, qrdDerivativeGain, 
 	brushSpeed, firingSpeed, bikeSpeed, diffUpSpeed, diffDownSpeed, 
 	servoLoadAngle, servoCollectAngle, servoBikeAngle, servoDiffAngle, servoWallRearAngle, servoWallFrontAngle
 };
-const int itemCount = 15;
+const int itemCount = 15; // must equal menu item array size
 
 const int lcdRefreshPeriod = 30; // Update LCD screen every n iterations. Larger = fewer updates. Smaller = flicker
 unsigned int lcdRefreshCount = 0; // Current iteration. Do not change this value
@@ -273,6 +276,12 @@ bool Armed(int debounceTime = 15)
 	if(analogRead(COLLECT_QRD_PIN) >= ballCollectThreshold.Value()) return false;
 	delay(debounceTime);
 	return (analogRead(COLLECT_QRD_PIN) < ballCollectThreshold.Value());
+}
+
+// Returns a bool indicating whether the laser break beam has been triggered
+bool BreakBeam(int debounceTime = 15)
+{
+	if(analogRead(BREAK_BEAM_SENSOR) >= laser)
 }
 
 // Returns a bool indicating whether the given IR sensor is detecting a target
@@ -484,6 +493,30 @@ void Strafe()
 	LCD.setCursor(11,1);
 	Print(analogRead(TARGET_IR_PIN));
 }
+
+
+
+
+/*
+
+
+if (TargetAcquired() && !Armed() &&	BreakBeam() )
+{
+	wait until timeout or armed
+	{}
+
+	if timeout expired then look for 10k
+	else fire
+}
+
+
+
+
+
+
+
+
+*/
 
 void Fire() 
 {
