@@ -112,8 +112,6 @@ int rightAngle = 0;
 unsigned long timeOfLastFiring = 0;
 bool isEmpty = false;
 bool leavingWall = false;
-// Target Finding
-bool targetFound = false;
 // Tape Following
 int qrdError = 0;
 int qrdPreviousError = 0;
@@ -422,11 +420,6 @@ void WallFollowSensorUpdate()
 		delay(SERVO_TRANSFORM_DELAY);
 	}
 	else leavingWall = false;
-
-	// Handle target detection
-	//if((!isEmpty) && TargetAcquired()) targetFound = true;
-	if(Armed() && TargetAcquired()) targetFound = true;
-	else targetFound = false;
 }
 
 void WallFollow()
@@ -500,8 +493,6 @@ void Strafe()
 
 
 /*
-
-
 if (TargetAcquired() && !Armed() &&	BreakBeam() )
 {
 	wait until timeout or armed
@@ -510,14 +501,6 @@ if (TargetAcquired() && !Armed() &&	BreakBeam() )
 	if timeout expired then look for 10k
 	else fire
 }
-
-
-
-
-
-
-
-
 */
 
 void Fire() 
