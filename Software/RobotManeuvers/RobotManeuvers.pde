@@ -441,18 +441,18 @@ void WallFollow()
 	// End the wall following maneuver
 	if(leavingWall)
 	{
-		LCD.setCursor(0,1); Print("Leaving wall... ");
-		leavingWall = false;
-		unsigned long startTime = millis();
-		while (millis() < startTime + WALL_FOLLOW_END_DELAY)
+		LCD.setCursor(0,1);
+		if (passedHomeBeacon()) SwitchWallFollowDirection();
+		while (!HomeBeaconAcquired())
 		{
 			Strafe();
 			WallFollowSensorUpdate();
+			if (!leavingWall) return;
 			if (StopButton(100)) return; // escape condition
 		}
-		MoveOffWall();
 		AcquireTapeFromWall();
 		maneuverState = TAPE_FOLLOW_DOWN_STATE;
+		leavingWall = false;
 		return;
 	}
 
@@ -464,8 +464,7 @@ void WallFollow()
 			unsigned long startTime = millis();
 			while (!Armed() && (millis() < startTime + BRUSH_LOAD_TIMEOUT_DELAY))
 			{	
-				if (StopButton(100)) 
-					return; // escape condition
+				if (StopButton(100)) return; // escape condition
 			}
 			if (Armed()) Fire;
 		}
@@ -498,9 +497,11 @@ void Strafe()
 	// Show steering information on screen
 	if(lcdRefreshCount > 2) return;
 	Reset();
-	Print("Strafing "); Print((strafeDirection == LEFT_DIRECTION) ? "left" : "right");
-	LCD.setCursor(11,1);
-	Print(analogRead(TARGET_IR_PIN));
+	Print("Strafe ");
+	Print((strafeDirection == LEFT_DIRECTION) ? "L " : "R ", analogRead(TARGET_IR_PIN));
+	if (!leavingWall) return;
+	LCD.setCursor(0,1);
+	LCD.print("Finding beacon");
 }
 
 
@@ -563,6 +564,7 @@ void AcquireTapeFromWall()
 {
 	Reset();
 	Print("Acquiring Tape");
+	MoveOffWall();
 
 	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * diffDownSpeed.Value());
 	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * diffDownSpeed.Value());
