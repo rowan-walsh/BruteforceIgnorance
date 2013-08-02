@@ -385,31 +385,25 @@ void WallFollowSensorUpdate()
 	leftFront = Microswitch(LEFT_FRONT_MICROSWITCH_PIN);
 	rightFront = Microswitch(RIGHT_FRONT_MICROSWITCH_PIN);
 
-	// Handle wall collisions
-	if(leftSide && (strafeDirection == LEFT_DIRECTION))
+	bool switchDirection = (leftSide && (strafeDirection == LEFT_DIRECTION)) || (rightSide && (strafeDirection == RIGHT_DIRECTION));
+	if (!switchDirection) return;
+
+	strafeDirection *= -1;
+	motor.stop(LEFT_MOTOR_PIN);
+	motor.stop(RIGHT_MOTOR_PIN);
+	if (leftSide)
 	{
-		strafeDirection = RIGHT_DIRECTION;
 		leftAngle = 180 - servoBikeAngle.Value() + servoWallRearAngle.Value();
 		rightAngle = servoBikeAngle.Value() - servoWallFrontAngle.Value();
-		
-		motor.stop(LEFT_MOTOR_PIN);
-		motor.stop(RIGHT_MOTOR_PIN);
-		SetServo(LEFT_SERVO, leftAngle);
-		SetServo(RIGHT_SERVO, rightAngle);
-		delay(SERVO_TRANSFORM_DELAY);
 	}
-	else if(rightSide && (strafeDirection == RIGHT_DIRECTION))
+	else if (rightSide)
 	{
-		strafeDirection = LEFT_DIRECTION;
 		leftAngle = 180 - servoBikeAngle.Value() + servoWallFrontAngle.Value();
 		rightAngle = servoBikeAngle.Value() - servoWallRearAngle.Value();
-
-		motor.stop(LEFT_MOTOR_PIN);
-		motor.stop(RIGHT_MOTOR_PIN);
-		SetServo(LEFT_SERVO, leftAngle);
-		SetServo(RIGHT_SERVO, rightAngle);
-		delay(SERVO_TRANSFORM_DELAY);
 	}
+	SetServo(LEFT_SERVO, leftAngle);
+	SetServo(RIGHT_SERVO, rightAngle);
+	delay(SERVO_TRANSFORM_DELAY);
 }
 
 void WallFollow()
