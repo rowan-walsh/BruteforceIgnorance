@@ -69,7 +69,6 @@
 // OTHER CONSTANTS
 // Delays
 #define REBOUND_DELAY 2000				// Fairly arbitrary
-#define EMPTY_DELAY 3000				// Fairly arbitrary
 #define WALL_FOLLOW_END_DELAY 1500		// Good
 #define SERVO_TRANSFORM_DELAY 1000		// Fairly arbitrary
 #define MOVE_OFF_WALL_DELAY 3000		// Arbitrary, probably too long
@@ -111,7 +110,6 @@ bool backTouchWall = false;
 int leftAngle = 0;
 int rightAngle = 0;
 unsigned long timeOfLastFiring = 0;
-bool isEmpty = false;
 bool leavingWall = false;
 // Tape Following
 int qrdError = 0;
@@ -381,10 +379,6 @@ void SecretFiringLevel()
 
 void WallFollowSensorUpdate()
 {
-	// Detect ball collection
-	isEmpty = (!Armed() && (millis()-timeOfLastFiring) >= EMPTY_DELAY);
-	//isEmpty = !Armed();
-
 	// Microswitches
 	leftSide = Microswitch(LEFT_SIDE_MICROSWITCH_PIN);
 	rightSide = Microswitch(RIGHT_SIDE_MICROSWITCH_PIN);
@@ -395,8 +389,6 @@ void WallFollowSensorUpdate()
 	if(leftSide && (strafeDirection == LEFT_DIRECTION))
 	{
 		strafeDirection = RIGHT_DIRECTION;
-		leavingWall = isEmpty;
-		//leavingWall = false;
 		leftAngle = 180 - servoBikeAngle.Value() + servoWallRearAngle.Value();
 		rightAngle = servoBikeAngle.Value() - servoWallFrontAngle.Value();
 		
@@ -409,8 +401,6 @@ void WallFollowSensorUpdate()
 	else if(rightSide && (strafeDirection == RIGHT_DIRECTION))
 	{
 		strafeDirection = LEFT_DIRECTION;
-		leavingWall = isEmpty;
-		//leavingWall = false;
 		leftAngle = 180 - servoBikeAngle.Value() + servoWallFrontAngle.Value();
 		rightAngle = servoBikeAngle.Value() - servoWallRearAngle.Value();
 
@@ -420,7 +410,6 @@ void WallFollowSensorUpdate()
 		SetServo(RIGHT_SERVO, rightAngle);
 		delay(SERVO_TRANSFORM_DELAY);
 	}
-	else leavingWall = false;
 }
 
 void WallFollow()
@@ -448,24 +437,20 @@ void WallFollow()
 		return;
 	}
 
-	// FIRE!
 	if(!TargetAcquired())
 	{
 		Strafe();
 		return;
 	}
 
-	if(Armed()) 
-		Fire();
+	if(Armed()) Fire();
 	else if (BreakBeam())
 	{
 		unsigned long startTime = millis();
 		while (!Armed() && (millis() < startTime + BRUSH_LOAD_TIMEOUT_DELAY))
-		{
-			Strafe();
-			WallFollowSensorUpdate();
 			if (StopButton(100)) return; // escape condition
-		}
+		if (Armed()) Fire();
+		else MoveOffWall();
 	}
 
 	{
