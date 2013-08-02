@@ -456,6 +456,7 @@ void WallFollow()
 		}
 	}
 	Strafe();
+
 }
 
 // Strafes along front wall while performing ON/OFF distance correction
