@@ -430,12 +430,13 @@ void WallFollow()
 		return;
 	}
 
-	if (!TargetAcquired()) break;
-	else if(Armed()) Fire();
-	else if (BreakBeam())
+	if(TargetAcquired())
 	{
-		unsigned long startTime = millis();
-		while (!Armed() && (millis() < startTime + BRUSH_LOAD_TIMEOUT_DELAY))
+		if(Armed()) Fire();
+		else if (BreakBeam())
+		{
+			unsigned long startTime = millis();
+			while (!Armed() && (millis() < startTime + BRUSH_LOAD_TIMEOUT_DELAY))
 			if (StopButton(100)) return; // escape condition
 		if (Armed()) Fire;
 	}
