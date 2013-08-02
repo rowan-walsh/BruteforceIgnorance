@@ -264,6 +264,15 @@ bool Microswitch(int microswitchPin, int debounceTime = 15)
 	}
 }
 
+// Updates the variables that track the wall following touch sensors
+void UpdateWallFollowMicroswitches()
+{
+	leftSide = Microswitch(LEFT_SIDE_MICROSWITCH_PIN);
+	rightSide = Microswitch(RIGHT_SIDE_MICROSWITCH_PIN);
+	leftFront = Microswitch(LEFT_FRONT_MICROSWITCH_PIN);
+	rightFront = Microswitch(RIGHT_FRONT_MICROSWITCH_PIN);
+}
+
 // Returns a bool indicating whether the given qrd is sensing a non-reflective surface
 inline bool QRD(int qrdPin) {
 	return !digitalRead(qrdPin);
@@ -386,11 +395,7 @@ void SecretFiringLevel()
 // When wall following, this updates the sensors to react to changes in the environment
 void WallFollowSensorUpdate()
 {
-	leftSide = Microswitch(LEFT_SIDE_MICROSWITCH_PIN);
-	rightSide = Microswitch(RIGHT_SIDE_MICROSWITCH_PIN);
-	leftFront = Microswitch(LEFT_FRONT_MICROSWITCH_PIN);
-	rightFront = Microswitch(RIGHT_FRONT_MICROSWITCH_PIN);
-
+	UpdateWallFollowMicroswitches();
 	if (HomeBeaconAcquired()) passedHomeBeacon = true;
 
 	// If no ball detected, debounce and then check again
@@ -400,11 +405,10 @@ void WallFollowSensorUpdate()
 		while (!Armed() && !BreakBeam() && (millis() < startTime + 2500)) delay(10);
 		if (!Armed() && !BreakBeam()) leavingWall = true;		
 	}
-
 	else leavingWall = false; // Keep going if we have a ball
 
-	// If going left and hit left, or going right and hit right, then switch direction
-	if (leftSide && (strafeDirection == LEFT_DIRECTION)) || (rightSide && (strafeDirection == RIGHT_DIRECTION)); 
+	// If going left and hit left switch, or going right and hit right switch, then switch direction
+	if (leftSide && (strafeDirection == LEFT_DIRECTION)) || (rightSide && (strafeDirection == RIGHT_DIRECTION))
 		SwitchWallFollowDirection();
 }
 
@@ -467,7 +471,6 @@ void WallFollow()
 		}
 	}
 	Strafe();
-
 }
 
 // Strafes along front wall while performing ON/OFF distance correction
