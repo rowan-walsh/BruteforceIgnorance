@@ -704,10 +704,8 @@ void Collection()
 	if (ballCollected)
 	{
 		AcquireTapeFromCollect();
-		//maneuverState = TAPE_FOLLOW_UP_STATE;
-		maneuverState = WALL_FOLLOWING_STATE;
+		maneuverState = TAPE_FOLLOW_UP_STATE;
 		ballCollected = false;
-		
 	} else BumpCollect();
 }
 
