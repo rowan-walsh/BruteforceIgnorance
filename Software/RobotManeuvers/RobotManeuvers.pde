@@ -39,7 +39,7 @@
 #define BRUSH_MOTOR_PIN 2
 #define SHOOTING_MOTOR_PIN 3
 // Analog Inputs
-#define BREAK_BEAM_SENSOR 3
+#define BREAK_BEAM_SENSOR_PIN 3
 #define COLLECT_QRD_PIN 2
 #define TARGET_IR_PIN 1
 #define HOME_BEACON_IR_PIN 0
@@ -281,7 +281,9 @@ bool Armed(int debounceTime = 15)
 // Returns a bool indicating whether the laser break beam has been triggered
 bool BreakBeam(int debounceTime = 15)
 {
-	if(analogRead(BREAK_BEAM_SENSOR) >= laser)
+	if(analogRead(BREAK_BEAM_SENSOR_PIN) >= breakBeamThreshold.Value()) return false;
+	delay(debounceTime);
+	return (analogRead(BREAK_BEAM_SENSOR_PIN) >= breakBeamThreshold.Value());
 }
 
 // Returns a bool indicating whether the given IR sensor is detecting a target
@@ -294,7 +296,7 @@ bool TargetAcquired(int debounceTime = 15)
 {
 	if(analogRead(TARGET_IR_PIN) <= targetThreshold.Value()) return false;
 	delay(debounceTime);
-	return (analogRead(TARGET_IR_PIN) > targetThreshold.Value());
+	return (analogRead(TARGET_IR_PIN) >= targetThreshold.Value());
 }
 
 void Update() // Update - Menu and LCD
