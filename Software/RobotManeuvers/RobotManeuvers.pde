@@ -76,6 +76,7 @@
 #define TURN_135_DEG_DELAY 1000			// Arbitrary, untested
 #define COLLECTION_DELAY 1000			// Good
 #define COLLECTION_REVERSE_DELAY 500	// Good
+#define BRUSH_LOAD_TIMEOUT_DELAY 15000  // Experimental
 
 // LOOPING MANEUVER STATES
 #define MENU_STATE 0
@@ -170,27 +171,27 @@ void loop()
 	switch(maneuverState)
 	{
 		case MENU_STATE:
-			ProcessMenu();
+		ProcessMenu();
 		break;
 		case WALL_FOLLOWING_STATE:
-			WallFollow();
+		WallFollow();
 		break;
 		case TAPE_FOLLOW_DOWN_STATE:
-			FollowTape(FOLLOW_DOWN_DIRECTION);
+		FollowTape(FOLLOW_DOWN_DIRECTION);
 		break;
 		case COLLECTION_STATE:
-			Collection();
+		Collection();
 		break;
 		case TAPE_FOLLOW_UP_STATE:
-			FollowTape(FOLLOW_UP_DIRECTION);
+		FollowTape(FOLLOW_UP_DIRECTION);
 		break;
 		case SECRET_LEVEL_STATE:
-			SecretFiringLevel();
+		SecretFiringLevel();
 		break;
 		default:
-			Reset();
-			Print("Error: no state"); LCD.setCursor(0,1);
-			Print("???");
+		Reset();
+		Print("Error: no state"); LCD.setCursor(0,1);
+		Print("???");
 		break;
 	}
 }
@@ -439,7 +440,7 @@ void WallFollow()
 		{
 			Strafe();
 			WallFollowSensorUpdate();
-			if (StopButton(1000)) return; // escape condition
+			if (StopButton(100)) return; // escape condition
 		}
 		MoveOffWall();
 		AcquireTapeFromWall();
@@ -448,7 +449,25 @@ void WallFollow()
 	}
 
 	// FIRE!
-	if(targetFound)
+	if(!TargetAcquired())
+	{
+		Strafe();
+		return;
+	}
+
+	if(Armed()) 
+		Fire();
+	else if (BreakBeam())
+	{
+		unsigned long startTime = millis();
+		while (!Armed() && (millis() < startTime + BRUSH_LOAD_TIMEOUT_DELAY))
+		{
+			Strafe();
+			WallFollowSensorUpdate();
+			if (StopButton(100)) return; // escape condition
+		}
+	}
+
 	{
 		LCD.setCursor(0,1); Print("Firing!         ");
 
@@ -520,7 +539,7 @@ void Fire()
 	while(Armed())
 	{
 		delay(10);
-		if (StopButton(1000)) return; // escape condition
+		if (StopButton(100)) return; // escape condition
 	}
 	SetServo(BALL_SERVO, servoCollectAngle.Value()); // return arm to collect position
 
@@ -572,7 +591,7 @@ void AcquireTapeFromWall()
 	{
 		qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
 		qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
-		if (StopButton(1000)) return; // escape condition
+		if (StopButton(100)) return; // escape condition
 	}
 	while(!qrdInnerLeft && !qrdInnerRight);
 }
@@ -681,7 +700,7 @@ void SquareTouch(int baseSpeed)
 		motor.speed(LEFT_MOTOR_PIN, leftSpeed);
 		motor.speed(RIGHT_MOTOR_PIN, rightSpeed);
 
-		if (StopButton(1000)) return; // escape condition
+		if (StopButton(100)) return; // escape condition
 	}
 	while(!leftFront && !rightFront); // as long as BOTH switches are not triggered
 }
