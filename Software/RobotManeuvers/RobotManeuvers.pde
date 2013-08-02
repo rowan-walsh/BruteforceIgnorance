@@ -111,6 +111,7 @@ bool backTouchWall = false;
 int leftAngle = 0;
 int rightAngle = 0;
 bool leavingWall = false;
+bool passedHomeBeacon = false;
 // Tape Following
 int qrdError = 0;
 int qrdPreviousError = 0;
@@ -390,6 +391,9 @@ void WallFollowSensorUpdate()
 	leftFront = Microswitch(LEFT_FRONT_MICROSWITCH_PIN);
 	rightFront = Microswitch(RIGHT_FRONT_MICROSWITCH_PIN);
 
+	if (HomeBeaconAcquired()) passedHomeBeacon = true;
+
+	// If no ball detected, debounce and then check again
 	if(!Armed() && !BreakBeam()) 
 	{
 		unsigned long startTime = millis();
@@ -397,12 +401,16 @@ void WallFollowSensorUpdate()
 		if (!Armed() && !BreakBeam()) leavingWall = true;		
 	}
 
-	leavingWall = true; // If no ball, we need to return to collection
 	else leavingWall = false; // Keep going if we have a ball
 
-	bool switchDirection = (leftSide && (strafeDirection == LEFT_DIRECTION)) || (rightSide && (strafeDirection == RIGHT_DIRECTION)); 
-	if (!switchDirection) return; // Only continue if we need to change direction
+	// If going left and hit left, or going right and hit right, then switch direction
+	if (leftSide && (strafeDirection == LEFT_DIRECTION)) || (rightSide && (strafeDirection == RIGHT_DIRECTION)); 
+		SwitchWallFollowDirection();
+}
 
+void SwitchWallFollowDirection()
+{
+	passedHomeBeacon = false; // Haven't seen home beacon since direction is reset
 	strafeDirection *= -1;
 	if (leftSide)
 	{
