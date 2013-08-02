@@ -68,7 +68,7 @@
 
 // OTHER CONSTANTS
 // Delays
-#define REBOUND_DELAY 2000				// Fairly arbitrary
+#define REBOUND_DELAY 3000				// Fairly arbitrary
 #define WALL_FOLLOW_END_DELAY 1500		// Good
 #define SERVO_TRANSFORM_DELAY 1000		// Fairly arbitrary
 #define MOVE_OFF_WALL_DELAY 3000		// Arbitrary, probably too long
@@ -109,7 +109,6 @@ bool frontTouchWall = false;
 bool backTouchWall = false;
 int leftAngle = 0;
 int rightAngle = 0;
-unsigned long timeOfLastFiring = 0;
 bool leavingWall = false;
 // Tape Following
 int qrdError = 0;
@@ -474,19 +473,6 @@ void Strafe()
 }
 
 
-
-
-/*
-if (TargetAcquired() && !Armed() &&	BreakBeam() )
-{
-	wait until timeout or armed
-	{}
-
-	if timeout expired then look for 10k
-	else fire
-}
-*/
-
 void Fire() 
 {
 	if(!Armed()) return;
@@ -511,9 +497,7 @@ void Fire()
 	// Stop firing rotor motor
 	delay(500); // Allow time for ball to shoot
 	motor.stop(SHOOTING_MOTOR_PIN);
-
-	delay(REBOUND_DELAY); // Attempt to collect rebounded balls
-	timeOfLastFiring = millis();
+	delay(REBOUND_DELAY);
 }
 
 // Exectutes a controlled maneuver to exit the wall from a wall following position
