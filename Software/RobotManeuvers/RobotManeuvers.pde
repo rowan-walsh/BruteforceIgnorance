@@ -39,7 +39,7 @@
 #define BRUSH_MOTOR_PIN 2
 #define SHOOTING_MOTOR_PIN 3
 // Analog Inputs
-#define BREAK_BEAM_SENSOR 3
+#define BREAK_BEAM_SENSOR_PIN 3
 #define COLLECT_QRD_PIN 2
 #define TARGET_IR_PIN 1
 #define HOME_BEACON_IR_PIN 0
@@ -76,6 +76,7 @@
 #define TURN_135_DEG_DELAY 1000			// Arbitrary, untested
 #define COLLECTION_DELAY 1000			// Good
 #define COLLECTION_REVERSE_DELAY 500	// Good
+#define BRUSH_LOAD_TIMEOUT_DELAY 15000  // Experimental
 
 // LOOPING MANEUVER STATES
 #define MENU_STATE 0
@@ -112,8 +113,6 @@ int rightAngle = 0;
 unsigned long timeOfLastFiring = 0;
 bool isEmpty = false;
 bool leavingWall = false;
-// Target Finding
-bool targetFound = false;
 // Tape Following
 int qrdError = 0;
 int qrdPreviousError = 0;
@@ -172,27 +171,27 @@ void loop()
 	switch(maneuverState)
 	{
 		case MENU_STATE:
-			ProcessMenu();
+		ProcessMenu();
 		break;
 		case WALL_FOLLOWING_STATE:
-			WallFollow();
+		WallFollow();
 		break;
 		case TAPE_FOLLOW_DOWN_STATE:
-			FollowTape(FOLLOW_DOWN_DIRECTION);
+		FollowTape(FOLLOW_DOWN_DIRECTION);
 		break;
 		case COLLECTION_STATE:
-			Collection();
+		Collection();
 		break;
 		case TAPE_FOLLOW_UP_STATE:
-			FollowTape(FOLLOW_UP_DIRECTION);
+		FollowTape(FOLLOW_UP_DIRECTION);
 		break;
 		case SECRET_LEVEL_STATE:
-			SecretFiringLevel();
+		SecretFiringLevel();
 		break;
 		default:
-			Reset();
-			Print("Error: no state"); LCD.setCursor(0,1);
-			Print("???");
+		Reset();
+		Print("Error: no state"); LCD.setCursor(0,1);
+		Print("???");
 		break;
 	}
 }
@@ -281,7 +280,9 @@ bool Armed(int debounceTime = 15)
 // Returns a bool indicating whether the laser break beam has been triggered
 bool BreakBeam(int debounceTime = 15)
 {
-	if(analogRead(BREAK_BEAM_SENSOR) >= laser)
+	if(analogRead(BREAK_BEAM_SENSOR_PIN) >= breakBeamThreshold.Value()) return false;
+	delay(debounceTime);
+	return (analogRead(BREAK_BEAM_SENSOR_PIN) >= breakBeamThreshold.Value());
 }
 
 // Returns a bool indicating whether the given IR sensor is detecting a target
@@ -294,7 +295,7 @@ bool TargetAcquired(int debounceTime = 15)
 {
 	if(analogRead(TARGET_IR_PIN) <= targetThreshold.Value()) return false;
 	delay(debounceTime);
-	return (analogRead(TARGET_IR_PIN) > targetThreshold.Value());
+	return (analogRead(TARGET_IR_PIN) >= targetThreshold.Value());
 }
 
 void Update() // Update - Menu and LCD
@@ -420,11 +421,6 @@ void WallFollowSensorUpdate()
 		delay(SERVO_TRANSFORM_DELAY);
 	}
 	else leavingWall = false;
-
-	// Handle target detection
-	//if((!isEmpty) && TargetAcquired()) targetFound = true;
-	if(Armed() && TargetAcquired()) targetFound = true;
-	else targetFound = false;
 }
 
 void WallFollow()
@@ -444,7 +440,7 @@ void WallFollow()
 		{
 			Strafe();
 			WallFollowSensorUpdate();
-			if (StopButton(1000)) return; // escape condition
+			if (StopButton(100)) return; // escape condition
 		}
 		MoveOffWall();
 		AcquireTapeFromWall();
@@ -453,7 +449,25 @@ void WallFollow()
 	}
 
 	// FIRE!
-	if(targetFound)
+	if(!TargetAcquired())
+	{
+		Strafe();
+		return;
+	}
+
+	if(Armed()) 
+		Fire();
+	else if (BreakBeam())
+	{
+		unsigned long startTime = millis();
+		while (!Armed() && (millis() < startTime + BRUSH_LOAD_TIMEOUT_DELAY))
+		{
+			Strafe();
+			WallFollowSensorUpdate();
+			if (StopButton(100)) return; // escape condition
+		}
+	}
+
 	{
 		LCD.setCursor(0,1); Print("Firing!         ");
 
@@ -498,8 +512,6 @@ void Strafe()
 
 
 /*
-
-
 if (TargetAcquired() && !Armed() &&	BreakBeam() )
 {
 	wait until timeout or armed
@@ -508,14 +520,6 @@ if (TargetAcquired() && !Armed() &&	BreakBeam() )
 	if timeout expired then look for 10k
 	else fire
 }
-
-
-
-
-
-
-
-
 */
 
 void Fire() 
@@ -535,7 +539,7 @@ void Fire()
 	while(Armed())
 	{
 		delay(10);
-		if (StopButton(1000)) return; // escape condition
+		if (StopButton(100)) return; // escape condition
 	}
 	SetServo(BALL_SERVO, servoCollectAngle.Value()); // return arm to collect position
 
@@ -587,7 +591,7 @@ void AcquireTapeFromWall()
 	{
 		qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
 		qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
-		if (StopButton(1000)) return; // escape condition
+		if (StopButton(100)) return; // escape condition
 	}
 	while(!qrdInnerLeft && !qrdInnerRight);
 }
@@ -696,7 +700,7 @@ void SquareTouch(int baseSpeed)
 		motor.speed(LEFT_MOTOR_PIN, leftSpeed);
 		motor.speed(RIGHT_MOTOR_PIN, rightSpeed);
 
-		if (StopButton(1000)) return; // escape condition
+		if (StopButton(100)) return; // escape condition
 	}
 	while(!leftFront && !rightFront); // as long as BOTH switches are not triggered
 }
