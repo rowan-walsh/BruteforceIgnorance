@@ -9,6 +9,7 @@
 // EEPROM ADDRESSES (for the love of god, don't modify!)
 // Light sensors
 #define TARGET_THRESHOLD 1
+#define HOME_BEACON_THRESHOLD 5
 #define BALL_COLLECT_THRESHOLD 2
 #define BREAK_BEAM_THRESHOLD 4
 // Gain parameters
@@ -121,6 +122,7 @@ bool ballCollected = false;
 // MENU ITEMS 
 // Thresholds
 MenuItem targetThreshold = MenuItem("T TH", TARGET_THRESHOLD);
+MenuItem homeBeaconThreshold = MenuItem("HB TH", HOME_BEACON_THRESHOLD);
 MenuItem ballCollectThreshold = MenuItem("Col TH", BALL_COLLECT_THRESHOLD);
 MenuItem breakBeamThreshold = MenuItem("BB TH", BREAK_BEAM_THRESHOLD);
 // QRD gains
@@ -143,7 +145,7 @@ MenuItem servoWallFrontAngle = MenuItem("Front ang", SERVO_WALL_FRONT_ANGLE);
 // Load menu items into an array
 MenuItem items[] = 
 {
-	targetThreshold, ballCollectThreshold, breakBeamThreshold,
+	targetThreshold, homeBeaconThreshold, ballCollectThreshold, breakBeamThreshold,
 	qrdProportionalGain, qrdDerivativeGain, 
 	brushSpeed, firingSpeed, bikeSpeed, diffUpSpeed, diffDownSpeed, 
 	servoLoadAngle, servoCollectAngle, servoBikeAngle, servoDiffAngle, servoWallRearAngle, servoWallFrontAngle
@@ -290,9 +292,17 @@ inline bool IR(int irPin) {
 // Returns a bool indicating whether a target is detected
 bool TargetAcquired(int debounceTime = 15)
 {
-	if(analogRead(TARGET_IR_PIN) <= targetThreshold.Value()) return false;
+	if(analogRead(TARGET_IR_PIN) < targetThreshold.Value()) return false;
 	delay(debounceTime);
 	return (analogRead(TARGET_IR_PIN) >= targetThreshold.Value());
+}
+
+// Returns a bool indicating whether the home beacon is detected
+bool HomeBeaconAcquired(int debounceTime = 15)
+{
+	if(analogRead(HOME_BEACON_IR_PIN) < homeBeaconThreshold.Value()) return false;
+	delay(debounceTime);
+	return (analogRead(HOME_BEACON_IR_PIN) >= homeBeaconThreshold.Value());
 }
 
 void Update() // Update - Menu and LCD
@@ -347,6 +357,7 @@ void ProcessMenu()
 
 	if(selectedItem == 0) Print(" ", analogRead(TARGET_IR_PIN));
 	else if(selectedItem == 1) Print(" ", analogRead(COLLECT_QRD_PIN));
+	else if(selectedItem == 2) Print(" ", analogRead(HOME_BEACON_IR_PIN));
 
 	LCD.setCursor(0,1);
 	Print("Set to ", knobValue); Print("?");
@@ -437,8 +448,12 @@ void WallFollow()
 		{
 			unsigned long startTime = millis();
 			while (!Armed() && (millis() < startTime + BRUSH_LOAD_TIMEOUT_DELAY))
-			if (StopButton(100)) return; // escape condition
-		if (Armed()) Fire;
+			{	
+				if (StopButton(100)) 
+					return; // escape condition
+			}
+			if (Armed()) Fire;
+		}
 	}
 	Strafe();
 }
@@ -713,19 +728,18 @@ void AcquireTapeFromCollect()
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
 
-	// Spin about 135 degrees
-	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * -1 * diffUpSpeed.Value());
-	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * -1 * DIFF_REVERSE * diffUpSpeed.Value());
-	delay(TURN_135_DEG_DELAY);
+	// Spin
+	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * DIFF_REVERSE * diffUpSpeed.Value());
+	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * diffUpSpeed.Value());
+	do
+	{
+		delay(20);
+		if(StopButton(100)) return; // Escape condition
+	}
+	while(!HomeBeaconAcquired(5));
 
-	// // Wait until tape is detected
-	// do
-	// {
-	// 	qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
-	// 	qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
-	// 	if(StopButton(1000)) return; // escape condition
-	// }
-	// while(!qrdInnerLeft && !qrdInnerRight);
+	motor.stop(LEFT_MOTOR_PIN);
+	motor.stop(RIGHT_MOTOR_PIN);
 
 	SquareTouch(diffUpSpeed.Value());
 
