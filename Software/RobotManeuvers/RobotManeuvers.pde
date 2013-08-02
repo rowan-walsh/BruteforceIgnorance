@@ -284,11 +284,6 @@ bool BreakBeam(int debounceTime = 15)
 	return (analogRead(BREAK_BEAM_SENSOR_PIN) >= breakBeamThreshold.Value());
 }
 
-// Returns a bool indicating whether the given IR sensor is detecting a target
-inline bool IR(int irPin) {
-	return (analogRead(irPin) > targetThreshold.Value());
-}
-
 // Returns a bool indicating whether a target is detected
 bool TargetAcquired(int debounceTime = 15)
 {
