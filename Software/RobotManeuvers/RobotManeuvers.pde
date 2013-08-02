@@ -373,24 +373,24 @@ void SecretFiringLevel()
 		delay(1000);
 	}
 	else SetServo(BALL_SERVO, servoCollectAngle.Value());
-
 	delay(100);
 }
 
+// When wall following, this updates the sensors to react to changes in the environment
 void WallFollowSensorUpdate()
 {
-	// Microswitches
 	leftSide = Microswitch(LEFT_SIDE_MICROSWITCH_PIN);
 	rightSide = Microswitch(RIGHT_SIDE_MICROSWITCH_PIN);
 	leftFront = Microswitch(LEFT_FRONT_MICROSWITCH_PIN);
 	rightFront = Microswitch(RIGHT_FRONT_MICROSWITCH_PIN);
 
-	bool switchDirection = (leftSide && (strafeDirection == LEFT_DIRECTION)) || (rightSide && (strafeDirection == RIGHT_DIRECTION));
-	if (!switchDirection) return;
+	if(!Armed() && !BreakBeam()) leavingWall = true; // If no ball, we need to return to collection
+	else leavingWall = false; // Keep going if we have a ball
+
+	bool switchDirection = (leftSide && (strafeDirection == LEFT_DIRECTION)) || (rightSide && (strafeDirection == RIGHT_DIRECTION)); 
+	if (!switchDirection) return; // Only continue if we need to change direction
 
 	strafeDirection *= -1;
-	motor.stop(LEFT_MOTOR_PIN);
-	motor.stop(RIGHT_MOTOR_PIN);
 	if (leftSide)
 	{
 		leftAngle = 180 - servoBikeAngle.Value() + servoWallRearAngle.Value();
@@ -401,6 +401,8 @@ void WallFollowSensorUpdate()
 		leftAngle = 180 - servoBikeAngle.Value() + servoWallFrontAngle.Value();
 		rightAngle = servoBikeAngle.Value() - servoWallRearAngle.Value();
 	}
+	motor.stop(LEFT_MOTOR_PIN);
+	motor.stop(RIGHT_MOTOR_PIN);
 	SetServo(LEFT_SERVO, leftAngle);
 	SetServo(RIGHT_SERVO, rightAngle);
 	delay(SERVO_TRANSFORM_DELAY);
@@ -415,9 +417,7 @@ void WallFollow()
 	if(leavingWall)
 	{
 		LCD.setCursor(0,1); Print("Leaving wall... ");
-
 		leavingWall = false;
-
 		unsigned long startTime = millis();
 		while (millis() < startTime + WALL_FOLLOW_END_DELAY)
 		{
@@ -431,29 +431,15 @@ void WallFollow()
 		return;
 	}
 
-	if(!TargetAcquired())
-	{
-		Strafe();
-		return;
-	}
-
-	if(Armed()) Fire();
+	if (!TargetAcquired()) break;
+	else if(Armed()) Fire();
 	else if (BreakBeam())
 	{
 		unsigned long startTime = millis();
 		while (!Armed() && (millis() < startTime + BRUSH_LOAD_TIMEOUT_DELAY))
 			if (StopButton(100)) return; // escape condition
-		if (Armed()) Fire();
-		else MoveOffWall();
+		if (Armed()) Fire;
 	}
-
-	{
-		LCD.setCursor(0,1); Print("Firing!         ");
-
-		targetFound = false;
-		Fire();
-	}
-
 	Strafe();
 }
 
