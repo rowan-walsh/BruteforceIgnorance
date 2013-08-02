@@ -150,7 +150,7 @@ MenuItem items[] =
 	brushSpeed, firingSpeed, bikeSpeed, diffUpSpeed, diffDownSpeed, 
 	servoLoadAngle, servoCollectAngle, servoBikeAngle, servoDiffAngle, servoWallRearAngle, servoWallFrontAngle
 };
-const int itemCount = 15; // must equal menu item array size
+const int itemCount = 17; // must equal menu item array size
 
 const int lcdRefreshPeriod = 30; // Update LCD screen every n iterations. Larger = fewer updates. Smaller = flicker
 unsigned int lcdRefreshCount = 0; // Current iteration. Do not change this value
@@ -356,8 +356,9 @@ void ProcessMenu()
 	Print(items[selectedItem].Name()); Print(" "); Print(items[selectedItem].Value());
 
 	if(selectedItem == 0) Print(" ", analogRead(TARGET_IR_PIN));
-	else if(selectedItem == 1) Print(" ", analogRead(COLLECT_QRD_PIN));
-	else if(selectedItem == 2) Print(" ", analogRead(HOME_BEACON_IR_PIN));
+	else if(selectedItem == 2) Print(" ", analogRead(COLLECT_QRD_PIN));
+	else if(selectedItem == 1) Print(" ", analogRead(HOME_BEACON_IR_PIN));
+	else if(selectedItem == 3) Print(" ", analogRead(BREAK_BEAM_SENSOR_PIN));
 
 	LCD.setCursor(0,1);
 	Print("Set to ", knobValue); Print("?");
@@ -394,7 +395,14 @@ void WallFollowSensorUpdate()
 	leftFront = Microswitch(LEFT_FRONT_MICROSWITCH_PIN);
 	rightFront = Microswitch(RIGHT_FRONT_MICROSWITCH_PIN);
 
-	if(!Armed() && !BreakBeam()) leavingWall = true; // If no ball, we need to return to collection
+	if(!Armed() && !BreakBeam()) 
+	{
+		unsigned long startTime = millis();
+		while (!Armed() && !BreakBeam() && (millis() < startTime + 2500)) delay(10);
+		if (!Armed() && !BreakBeam()) leavingWall = true;		
+	}
+
+	leavingWall = true; // If no ball, we need to return to collection
 	else leavingWall = false; // Keep going if we have a ball
 
 	bool switchDirection = (leftSide && (strafeDirection == LEFT_DIRECTION)) || (rightSide && (strafeDirection == RIGHT_DIRECTION)); 
