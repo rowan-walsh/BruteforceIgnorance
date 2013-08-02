@@ -9,7 +9,9 @@
 // EEPROM ADDRESSES (for the love of god, don't modify!)
 // Light sensors
 #define TARGET_THRESHOLD 1
+#define HOME_BEACON_THRESHOLD 5
 #define BALL_COLLECT_THRESHOLD 2
+#define BREAK_BEAM_THRESHOLD 4
 // Gain parameters
 #define QRD_P_GAIN 6
 #define QRD_D_GAIN 7
@@ -29,18 +31,19 @@
 
 // PIN DECLARATIONS
 // Servo indices
-#define SERVO_BALL 0
-#define SERVO_LEFT 1
-#define SERVO_RIGHT 2
+#define BALL_SERVO 0
+#define LEFT_SERVO 1
+#define RIGHT_SERVO 2
 // Motors
 #define LEFT_MOTOR_PIN 0
 #define RIGHT_MOTOR_PIN 1
 #define BRUSH_MOTOR_PIN 2
 #define SHOOTING_MOTOR_PIN 3
 // Analog Inputs
+#define BREAK_BEAM_SENSOR_PIN 3
 #define COLLECT_QRD_PIN 2
-#define TARGET_DETECT_PIN 1
-#define UNUSED_TARGET_DETECT_PIN 0
+#define TARGET_IR_PIN 1
+#define HOME_BEACON_IR_PIN 0
 // Digital Inputs
 #define LEFT_SIDE_MICROSWITCH_PIN 7
 #define LEFT_FRONT_MICROSWITCH_PIN 6
@@ -57,8 +60,8 @@
 #define LEFT_DIRECTION 1 
 #define RIGHT_DIRECTION -1
 // Differential steering
-#define LEFT_DIFF_MULT 1
-#define RIGHT_DIFF_MULT -1
+#define LEFT_DIFF_MULT -1
+#define RIGHT_DIFF_MULT 1
 #define DIFF_REVERSE -1
 #define TOO_LEFT -1.0
 #define TOO_RIGHT 1.0
@@ -66,14 +69,14 @@
 
 // OTHER CONSTANTS
 // Delays
-#define REBOUND_DELAY 2000
-#define EMPTY_DELAY 5000
-#define WALL_FOLLOW_END_DELAY 3000
-#define SERVO_TRANSFORM_DELAY 250
-#define MOVE_OFF_WALL_DELAY 3000
-#define TURN_135_DEG_DELAY 500
-#define COLLECTION_DELAY 1000
-#define COLLECTION_REVERSE_DELAY 250
+#define REBOUND_DELAY 3000				// Fairly arbitrary
+#define WALL_FOLLOW_END_DELAY 1500		// Good
+#define SERVO_TRANSFORM_DELAY 1000		// Fairly arbitrary
+#define MOVE_OFF_WALL_DELAY 3000		// Arbitrary, probably too long
+#define TURN_135_DEG_DELAY 1000			// Arbitrary, untested
+#define COLLECTION_DELAY 1000			// Good
+#define COLLECTION_REVERSE_DELAY 500	// Good
+#define BRUSH_LOAD_TIMEOUT_DELAY 15000  // Experimental
 
 // LOOPING MANEUVER STATES
 #define MENU_STATE 0
@@ -105,13 +108,10 @@ int strafeDirection = LEFT_DIRECTION;
 int correctionMultiplier = 1;
 bool frontTouchWall = false;
 bool backTouchWall = false;
-
-unsigned long timeOfLastFiring = 0;
-bool isEmpty = false;
+int leftAngle = 0;
+int rightAngle = 0;
 bool leavingWall = false;
-
-// Target Finding
-bool targetFound = false;
+bool passedHomeBeacon = false;
 // Tape Following
 int qrdError = 0;
 int qrdPreviousError = 0;
@@ -123,7 +123,9 @@ bool ballCollected = false;
 // MENU ITEMS 
 // Thresholds
 MenuItem targetThreshold = MenuItem("T TH", TARGET_THRESHOLD);
+MenuItem homeBeaconThreshold = MenuItem("HB TH", HOME_BEACON_THRESHOLD);
 MenuItem ballCollectThreshold = MenuItem("Col TH", BALL_COLLECT_THRESHOLD);
+MenuItem breakBeamThreshold = MenuItem("BB TH", BREAK_BEAM_THRESHOLD);
 // QRD gains
 MenuItem qrdProportionalGain = MenuItem("Q P-Gain", QRD_P_GAIN);
 MenuItem qrdDerivativeGain = MenuItem("Q D-Gain", QRD_D_GAIN);
@@ -144,16 +146,14 @@ MenuItem servoWallFrontAngle = MenuItem("Front ang", SERVO_WALL_FRONT_ANGLE);
 // Load menu items into an array
 MenuItem items[] = 
 {
-	targetThreshold, ballCollectThreshold,
+	targetThreshold, homeBeaconThreshold, ballCollectThreshold, breakBeamThreshold,
 	qrdProportionalGain, qrdDerivativeGain, 
 	brushSpeed, firingSpeed, bikeSpeed, diffUpSpeed, diffDownSpeed, 
 	servoLoadAngle, servoCollectAngle, servoBikeAngle, servoDiffAngle, servoWallRearAngle, servoWallFrontAngle
 };
-const int itemCount = 15;
+const int itemCount = 17; // must equal menu item array size
 
-//
-
-const int lcdRefreshPeriod = 20; // Update LCD screen every n iterations. Larger = fewer updates. Smaller = flicker
+const int lcdRefreshPeriod = 30; // Update LCD screen every n iterations. Larger = fewer updates. Smaller = flicker
 unsigned int lcdRefreshCount = 0; // Current iteration. Do not change this value
 
 void setup()
@@ -171,26 +171,27 @@ void loop()
 	switch(maneuverState)
 	{
 		case MENU_STATE:
-			ProcessMenu();
+		ProcessMenu();
 		break;
 		case WALL_FOLLOWING_STATE:
-			WallFollow();
+		WallFollow();
 		break;
 		case TAPE_FOLLOW_DOWN_STATE:
-			FollowTape(FOLLOW_DOWN_DIRECTION);
+		FollowTape(FOLLOW_DOWN_DIRECTION);
 		break;
 		case COLLECTION_STATE:
-			Collection();
+		Collection();
 		break;
 		case TAPE_FOLLOW_UP_STATE:
-			FollowTape(FOLLOW_UP_DIRECTION);
+		FollowTape(FOLLOW_UP_DIRECTION);
 		break;
 		case SECRET_LEVEL_STATE:
-			SecretFiringLevel();
+		SecretFiringLevel();
 		break;
 		default:
-			Reset();
-			Print("Error: no state");
+		Reset();
+		Print("Error: no state"); LCD.setCursor(0,1);
+		Print("???");
 		break;
 	}
 }
@@ -247,11 +248,29 @@ inline bool StopButton(int debounceTime = 40)
 
 // Returns a bool indicating whether the given microswitch is being pressed
 // Optional: Specify a debounce time
-inline bool Microswitch(int microswitchPin, int debounceTime = 15)
+bool Microswitch(int microswitchPin, int debounceTime = 15)
 {
-	if(digitalRead(microswitchPin)) return false;
-	delay(debounceTime);
-	return !digitalRead(microswitchPin);
+	if(microswitchPin == LEFT_FRONT_MICROSWITCH_PIN || microswitchPin == RIGHT_FRONT_MICROSWITCH_PIN)
+	{
+		if(!digitalRead(microswitchPin)) return false;
+		delay(debounceTime);
+		return digitalRead(microswitchPin);
+	}
+	else
+	{
+		if(digitalRead(microswitchPin)) return false;
+		delay(debounceTime);
+		return !digitalRead(microswitchPin);
+	}
+}
+
+// Updates the variables that track the wall following touch sensors
+void UpdateWallFollowMicroswitches()
+{
+	leftSide = Microswitch(LEFT_SIDE_MICROSWITCH_PIN);
+	rightSide = Microswitch(RIGHT_SIDE_MICROSWITCH_PIN);
+	leftFront = Microswitch(LEFT_FRONT_MICROSWITCH_PIN);
+	rightFront = Microswitch(RIGHT_FRONT_MICROSWITCH_PIN);
 }
 
 // Returns a bool indicating whether the given qrd is sensing a non-reflective surface
@@ -260,21 +279,35 @@ inline bool QRD(int qrdPin) {
 }
 
 // Returns a bool indicating whether the collection QRD is being triggered by a ball
-inline bool Armed() {
+bool Armed(int debounceTime = 15)
+{
+	if(analogRead(COLLECT_QRD_PIN) >= ballCollectThreshold.Value()) return false;
+	delay(debounceTime);
 	return (analogRead(COLLECT_QRD_PIN) < ballCollectThreshold.Value());
 }
 
-// Returns a bool indicating whether the given IR sensor is detecting a target
-inline bool IR(int irPin) {
-	return (analogRead(irPin) > targetThreshold.Value());
+// Returns a bool indicating whether the laser break beam has been triggered
+bool BreakBeam(int debounceTime = 15)
+{
+	if(analogRead(BREAK_BEAM_SENSOR_PIN) >= breakBeamThreshold.Value()) return false;
+	delay(debounceTime);
+	return (analogRead(BREAK_BEAM_SENSOR_PIN) >= breakBeamThreshold.Value());
 }
 
 // Returns a bool indicating whether a target is detected
 bool TargetAcquired(int debounceTime = 15)
 {
-	if(analogRead(TARGET_DETECT_PIN) <= targetThreshold.Value()) return false;
+	if(analogRead(TARGET_IR_PIN) < targetThreshold.Value()) return false;
 	delay(debounceTime);
-	return (analogRead(TARGET_DETECT_PIN) > targetThreshold.Value());
+	return (analogRead(TARGET_IR_PIN) >= targetThreshold.Value());
+}
+
+// Returns a bool indicating whether the home beacon is detected
+bool HomeBeaconAcquired(int debounceTime = 15)
+{
+	if(analogRead(HOME_BEACON_IR_PIN) < homeBeaconThreshold.Value()) return false;
+	delay(debounceTime);
+	return (analogRead(HOME_BEACON_IR_PIN) >= homeBeaconThreshold.Value());
 }
 
 void Update() // Update - Menu and LCD
@@ -301,7 +334,7 @@ void ProcessMenu()
 	if(selectedItem == itemCount)
 	{
 		Reset();
-		Print("QRDs: ");
+		Print("QRD: ");
 		Print(QRD(OUTER_LEFT_QRD_PIN)); Print(QRD(INNER_LEFT_QRD_PIN));
 		Print(QRD(INNER_RIGHT_QRD_PIN)); Print(QRD(OUTER_RIGHT_QRD_PIN));
 		LCD.setCursor(0,1);
@@ -315,20 +348,22 @@ void ProcessMenu()
 	else if(selectedItem == itemCount + 1)
 	{
 		int selectedState = knobValue / 205 + 1;	// Allow user to select states 1-5 (not zero)
- 		Reset(); 
- 		Print("Current state: ", lastState); LCD.setCursor(0,1); 
- 		Print("Set to ", selectedState); Print(" ?");
- 		if(StopButton()) lastState = selectedState;
- 		delay(100);
- 		return;
+		Reset(); 
+		Print("Current state: ", lastState); LCD.setCursor(0,1); 
+		Print("Set to ", selectedState); Print(" ?");
+		if(StopButton()) lastState = selectedState;
+		delay(100);
+		return;
 	}
 
 	// Display the item information
 	Reset(); 
 	Print(items[selectedItem].Name()); Print(" "); Print(items[selectedItem].Value());
 
-	if(selectedItem == 0) Print(" ", analogRead(TARGET_DETECT_PIN)); 
-	else if(selectedItem == 1) Print(" ", analogRead(COLLECT_QRD_PIN));
+	if(selectedItem == 0) Print(" ", analogRead(TARGET_IR_PIN));
+	else if(selectedItem == 2) Print(" ", analogRead(COLLECT_QRD_PIN));
+	else if(selectedItem == 1) Print(" ", analogRead(HOME_BEACON_IR_PIN));
+	else if(selectedItem == 3) Print(" ", analogRead(BREAK_BEAM_SENSOR_PIN));
 
 	LCD.setCursor(0,1);
 	Print("Set to ", knobValue); Print("?");
@@ -338,132 +373,141 @@ void ProcessMenu()
 	delay(50);
 }
 
- void SecretFiringLevel()
- {
-  	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
- 	motor.speed(SHOOTING_MOTOR_PIN, firingSpeed.Value());
+void SecretFiringLevel()
+{
+	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
+	motor.speed(SHOOTING_MOTOR_PIN, firingSpeed.Value());
 
 	Reset();
 	Print("Arm: ", analogRead(COLLECT_QRD_PIN));
 	LCD.setCursor(0,1);
-	Print("IR:  ", analogRead(TARGET_DETECT_PIN));
+	Print("IR:  ", analogRead(TARGET_IR_PIN));
 	if(Armed())
 	{
 		delay(500);
-		SetServo(SERVO_BALL, servoLoadAngle.Value());
+		SetServo(BALL_SERVO, servoLoadAngle.Value());
 		delay(1000);
 	}
-	else SetServo(SERVO_BALL, servoCollectAngle.Value());
-
+	else SetServo(BALL_SERVO, servoCollectAngle.Value());
 	delay(100);
- }
+}
 
- void WallFollowSensorUpdate()
- {
-	// Detect ball collection
- 	//isEmpty = (!Armed() && millis()-timeOfLastFiring >= EMPTY_DELAY);
- 	isEmpty = !Armed();
+// When wall following, this updates the sensors to react to changes in the environment
+void WallFollowSensorUpdate()
+{
+	UpdateWallFollowMicroswitches();
+	if (HomeBeaconAcquired()) passedHomeBeacon = true;
 
-	// Microswitches
- 	leftSide = Microswitch(LEFT_SIDE_MICROSWITCH_PIN);
- 	rightSide = Microswitch(RIGHT_SIDE_MICROSWITCH_PIN);
- 	leftFront = Microswitch(LEFT_FRONT_MICROSWITCH_PIN);
- 	rightFront = Microswitch(RIGHT_FRONT_MICROSWITCH_PIN);
+	// If no ball detected, debounce and then check again
+	if(!Armed() && !BreakBeam()) 
+	{
+		unsigned long startTime = millis();
+		while (!Armed() && !BreakBeam() && (millis() < startTime + 2500)) delay(10);
+		if (!Armed() && !BreakBeam()) leavingWall = true;		
+	}
+	else leavingWall = false; // Keep going if we have a ball
 
-	// Handle wall collisions
- 	if(leftSide && (strafeDirection == LEFT_DIRECTION))
- 	{
- 		strafeDirection = RIGHT_DIRECTION;
- 		leavingWall = isEmpty;
- 		SetServo(SERVO_LEFT, 180 - servoBikeAngle.Value() + servoWallRearAngle.Value());
- 		SetServo(SERVO_RIGHT, servoBikeAngle.Value() - servoWallFrontAngle.Value());
- 		motor.stop(LEFT_MOTOR_PIN);
- 		motor.stop(RIGHT_MOTOR_PIN);
- 		delay(500);
- 	}
- 	else if(rightSide && (strafeDirection == RIGHT_DIRECTION))
- 	{
- 		strafeDirection = LEFT_DIRECTION;
- 		leavingWall = isEmpty;
- 		SetServo(SERVO_LEFT, 180 - servoBikeAngle.Value() + servoWallFrontAngle.Value());
- 		SetServo(SERVO_RIGHT, servoBikeAngle.Value() - servoWallRearAngle.Value());
- 		motor.stop(LEFT_MOTOR_PIN);
- 		motor.stop(RIGHT_MOTOR_PIN);
- 		delay(500);
- 	}
- 	else leavingWall = false;
+	// If going left and hit left switch, or going right and hit right switch, then switch direction
+	if (leftSide && (strafeDirection == LEFT_DIRECTION)) || (rightSide && (strafeDirection == RIGHT_DIRECTION))
+		SwitchWallFollowDirection();
+}
 
- 	// Handle target detection
- 	if((!isEmpty) && TargetAcquired()) targetFound = true;
- 	else targetFound = false;
- }
+void SwitchWallFollowDirection()
+{
+	passedHomeBeacon = false; // Haven't seen home beacon since direction is reset
+	strafeDirection *= -1;
+	if (leftSide)
+	{
+		leftAngle = 180 - servoBikeAngle.Value() + servoWallRearAngle.Value();
+		rightAngle = servoBikeAngle.Value() - servoWallFrontAngle.Value();
+	}
+	else if (rightSide)
+	{
+		leftAngle = 180 - servoBikeAngle.Value() + servoWallFrontAngle.Value();
+		rightAngle = servoBikeAngle.Value() - servoWallRearAngle.Value();
+	}
+	motor.stop(LEFT_MOTOR_PIN);
+	motor.stop(RIGHT_MOTOR_PIN);
+	SetServo(LEFT_SERVO, leftAngle);
+	SetServo(RIGHT_SERVO, rightAngle);
+	delay(SERVO_TRANSFORM_DELAY);
+}
 
- void WallFollow()
- {
- 	WallFollowSensorUpdate();
- 	SetServo(SERVO_BALL, servoCollectAngle.Value());
+void WallFollow()
+{
+	WallFollowSensorUpdate();
+	SetServo(BALL_SERVO, servoCollectAngle.Value());
 
 	// End the wall following maneuver
- 	if(leavingWall)
- 	{
- 		Reset(); Print("Leaving wall");
- 		leavingWall = false;
+	if(leavingWall)
+	{
+		LCD.setCursor(0,1);
+		if (passedHomeBeacon()) SwitchWallFollowDirection();
+		while (!HomeBeaconAcquired())
+		{
+			Strafe();
+			WallFollowSensorUpdate();
+			if (!leavingWall) return;
+			if (StopButton(100)) return; // escape condition
+		}
+		AcquireTapeFromWall();
+		maneuverState = TAPE_FOLLOW_DOWN_STATE;
+		leavingWall = false;
+		return;
+	}
 
- 		unsigned long startTime = millis();
- 		while (millis() < startTime + WALL_FOLLOW_END_DELAY)
- 		{
- 			Strafe();
- 			WallFollowSensorUpdate();
- 			if (StopButton(1000)) return; // escape condition
- 		}
- 		MoveOffWall();
- 		AcquireTapeFromWall();
- 		maneuverState = TAPE_FOLLOW_DOWN_STATE;
- 		return;
- 	}
+	if(TargetAcquired())
+	{
+		if(Armed()) Fire();
+		else if (BreakBeam())
+		{
+			unsigned long startTime = millis();
+			while (!Armed() && (millis() < startTime + BRUSH_LOAD_TIMEOUT_DELAY))
+			{	
+				if (StopButton(100)) return; // escape condition
+			}
+			if (Armed()) Fire;
+		}
+	}
+	Strafe();
+}
 
-	// FIRE!
- 	if(targetFound)
- 	{
- 		Reset(); Print("Firing!");
- 		targetFound = false;
- 		Fire();
- 	}
-
- 	Strafe();
- }
-
-// trafes along front wall while performing ON/OFF distance correction
- void Strafe()
- {
+// Strafes along front wall while performing ON/OFF distance correction
+void Strafe()
+{
 	// Engage collection, set strafing speeds
- 	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
- 	motor.speed(LEFT_MOTOR_PIN, strafeDirection * bikeSpeed.Value());
- 	motor.speed(RIGHT_MOTOR_PIN, strafeDirection * bikeSpeed.Value());
+	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
+	motor.speed(LEFT_MOTOR_PIN, strafeDirection * bikeSpeed.Value());
+	motor.speed(RIGHT_MOTOR_PIN, strafeDirection * bikeSpeed.Value());
 
- 	if(strafeDirection == LEFT_DIRECTION)
- 	{
- 		SetServo(SERVO_LEFT, 180 - servoBikeAngle.Value() + servoWallFrontAngle.Value());
- 		SetServo(SERVO_RIGHT, servoBikeAngle.Value() - servoWallRearAngle.Value());
- 	}
+	if(strafeDirection == LEFT_DIRECTION)
+	{
+		leftAngle = 180 - servoBikeAngle.Value() + servoWallFrontAngle.Value();
+		rightAngle = servoBikeAngle.Value() - servoWallRearAngle.Value();
+	}
 	else // strafeDirection == RIGHT_DIRECTION
 	{
-		SetServo(SERVO_LEFT, 180 - servoBikeAngle.Value() + servoWallRearAngle.Value());
-		SetServo(SERVO_RIGHT, servoBikeAngle.Value() - servoWallFrontAngle.Value());
+		leftAngle = 180 - servoBikeAngle.Value() + servoWallRearAngle.Value();
+		rightAngle = servoBikeAngle.Value() - servoWallFrontAngle.Value();
 	}
+
+	SetServo(LEFT_SERVO, leftAngle);
+	SetServo(RIGHT_SERVO, rightAngle);
 
 	// Show steering information on screen
 	if(lcdRefreshCount > 2) return;
 	Reset();
-	Print("Strafing ");
-	Print((strafeDirection == LEFT_DIRECTION) ? "left" : "right");
+	Print("Strafe ");
+	Print((strafeDirection == LEFT_DIRECTION) ? "L " : "R ", analogRead(TARGET_IR_PIN));
+	if (!leavingWall) return;
 	LCD.setCursor(0,1);
-	Print(analogRead(TARGET_DETECT_PIN));
+	LCD.print("Finding beacon");
 }
+
 
 void Fire() 
 {
-	if (!Armed()) return;
+	if(!Armed()) return;
 	// Disengage navigationm; engage collection and firing
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
@@ -473,50 +517,55 @@ void Fire()
 	// Load firing mechanism
 	LCD.setCursor(0,1);
 	Print("Loading ball");
-	SetServo(SERVO_BALL, servoLoadAngle.Value());
+	SetServo(BALL_SERVO, servoLoadAngle.Value());
 	
 	while(Armed())
 	{
 		delay(10);
-		if (StopButton(1000)) return; // escape condition
+		if (StopButton(100)) return; // escape condition
 	}
-	SetServo(SERVO_BALL, servoCollectAngle.Value()); // return arm to collect position
+	SetServo(BALL_SERVO, servoCollectAngle.Value()); // return arm to collect position
 
 	// Stop firing rotor motor
 	delay(500); // Allow time for ball to shoot
 	motor.stop(SHOOTING_MOTOR_PIN);
-
-	delay(REBOUND_DELAY); // Attempt to collect rebounded balls
-	timeOfLastFiring = millis();
+	delay(REBOUND_DELAY);
 }
 
 // Exectutes a controlled maneuver to exit the wall from a wall following position
 void MoveOffWall()
 {
+	LCD.setCursor(0,1); Print("Backing off wall");
+
 	// Engage collection and halt navigation
 	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
 	motor.stop(LEFT_MOTOR_PIN); motor.stop(RIGHT_MOTOR_PIN);
 	delay(500); // allow motors to come to a halt
 
 	// Rotate servos
-	SetServo(SERVO_LEFT, servoDiffAngle.Value()); 
-	SetServo(SERVO_RIGHT, servoDiffAngle.Value());
-	delay(SERVO_TRANSFORM_DELAY);  
+	SetServo(LEFT_SERVO, 180 - servoDiffAngle.Value()); 
+	SetServo(RIGHT_SERVO, servoDiffAngle.Value());
+	delay(SERVO_TRANSFORM_DELAY);
 
 	// Make a controlled reverse
 	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * DIFF_REVERSE * diffDownSpeed.Value());
 	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * DIFF_REVERSE * diffDownSpeed.Value());
 	delay(MOVE_OFF_WALL_DELAY);
 
+	LCD.setCursor(0,1); Print("Turning 135deg  ");
+
 	// Make a controlled turn
-	motor.speed(LEFT_MOTOR_PIN, diffDownSpeed.Value() * -1 * strafeDirection);
-	motor.speed(RIGHT_MOTOR_PIN, diffDownSpeed.Value() * -1 * strafeDirection);
+	motor.speed(LEFT_MOTOR_PIN, diffDownSpeed.Value() * strafeDirection);
+	motor.speed(RIGHT_MOTOR_PIN, diffDownSpeed.Value() * strafeDirection);
 	delay(TURN_135_DEG_DELAY);
 }
 
 void AcquireTapeFromWall()
 {
-	Reset(); Print("Acquiring Tape");
+	Reset();
+	Print("Acquiring Tape");
+	MoveOffWall();
+
 	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * diffDownSpeed.Value());
 	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * diffDownSpeed.Value());
 
@@ -524,7 +573,7 @@ void AcquireTapeFromWall()
 	{
 		qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
 		qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
-		if (StopButton(3000)) return; // escape condition
+		if (StopButton(100)) return; // escape condition
 	}
 	while(!qrdInnerLeft && !qrdInnerRight);
 }
@@ -553,8 +602,9 @@ void FollowTapeSensorUpdate(int followDirection) // Update - Following tape
 void FollowTape(int followDirection) // Looping maneuver
 {
 	FollowTapeSensorUpdate(followDirection);
-	SetServo(SERVO_LEFT, 180 - servoDiffAngle.Value());
-	SetServo(SERVO_RIGHT,servoDiffAngle.Value());
+	SetServo(BALL_SERVO, servoCollectAngle.Value());
+	SetServo(LEFT_SERVO, 180 - servoDiffAngle.Value());
+	SetServo(RIGHT_SERVO, servoDiffAngle.Value());
 
 	int baseSpeed = (followDirection == FOLLOW_UP_DIRECTION) ? diffUpSpeed.Value() : diffDownSpeed.Value();
 
@@ -599,7 +649,7 @@ void FollowTape(int followDirection) // Looping maneuver
 		motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * (baseSpeed - compensationSpeed));
 	}
 
-
+	// Keep track of differential gain
 	if(qrdPreviousError != qrdError)
 	{
 		qrdPreviousError = qrdError;
@@ -617,9 +667,8 @@ void FollowTape(int followDirection) // Looping maneuver
 
 void SquareTouch(int baseSpeed)
 {
-	Reset(); 
-	Print("Wall found,"); LCD.setCursor(0,1);
-	Print("Squaring up...");
+	LCD.setCursor(0,1); Print("Squaring up...");
+
 	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value()); // Engage collection
 	
 	do
@@ -633,7 +682,7 @@ void SquareTouch(int baseSpeed)
 		motor.speed(LEFT_MOTOR_PIN, leftSpeed);
 		motor.speed(RIGHT_MOTOR_PIN, rightSpeed);
 
-		if (StopButton(3000)) return; // escape condition
+		if (StopButton(100)) return; // escape condition
 	}
 	while(!leftFront && !rightFront); // as long as BOTH switches are not triggered
 }
@@ -648,18 +697,21 @@ void Collection()
 	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value()); // Engage collection
 	CollectionSensorUpdate();
 
+	SetServo(BALL_SERVO, servoCollectAngle.Value());
+	SetServo(LEFT_SERVO, 180 - servoDiffAngle.Value());
+	SetServo(RIGHT_SERVO, servoDiffAngle.Value());
+
 	if (ballCollected)
 	{
 		AcquireTapeFromCollect();
-		maneuverState = FOLLOW_UP_DIRECTION;
+		maneuverState = TAPE_FOLLOW_UP_STATE;
 		ballCollected = false;
-		
 	} else BumpCollect();
 }
 
 void BumpCollect()
 {
-	LCD.setCursor(0,1);	Print("Bumping wall");
+	LCD.setCursor(0,1);	Print("Reversing...  ");
 
 	// Engage collection and reverse navigation motors
 	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value()); // Engage collection	
@@ -679,36 +731,37 @@ void AcquireTapeFromCollect()
 {
 	// Set display state
 	Reset();
-	Print("Ball collected,");
-	LCD.setCursor(0,1);
-	Print("Aquiring tape...");
+	Print("Balls collected,"); LCD.setCursor(0,1);
+	Print("Finding tape...");
 
-	// Back up a certain distance
+	// Back up a certain distanced
 	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * DIFF_REVERSE * diffUpSpeed.Value());
 	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * DIFF_REVERSE * diffUpSpeed.Value());
-	delay(COLLECTION_REVERSE_DELAY);
+	delay(3 * COLLECTION_REVERSE_DELAY);
 
 	// Stop Motors
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
 
-	// Spin about 135 degrees
-	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * diffUpSpeed.Value());
-	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * DIFF_REVERSE * diffUpSpeed.Value());
-	delay(TURN_135_DEG_DELAY);
-
-	// Wait until tape is detected
+	// Spin
+	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * DIFF_REVERSE * diffUpSpeed.Value());
+	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * diffUpSpeed.Value());
 	do
 	{
-		qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
-		qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
-		if (StopButton(3000)) return; // escape condition
+		delay(20);
+		if(StopButton(100)) return; // Escape condition
 	}
-	while(!qrdInnerLeft && !qrdInnerRight);
+	while(!HomeBeaconAcquired(5));
+
+	motor.stop(LEFT_MOTOR_PIN);
+	motor.stop(RIGHT_MOTOR_PIN);
+
+	SquareTouch(diffUpSpeed.Value());
 
 	// Disengage motors
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
+	delay(1000); // ARBITRARY
 }
 
 void AcquireWallFromTape() 
@@ -717,4 +770,20 @@ void AcquireWallFromTape()
 	Print("Tape ended,"); LCD.setCursor(0,1);
 	Print("Finding Wall...");
 	SquareTouch(diffUpSpeed.Value());
+
+	if(strafeDirection == LEFT_DIRECTION)
+	{
+		leftAngle = 180 - servoBikeAngle.Value() + servoWallFrontAngle.Value();
+		rightAngle = servoBikeAngle.Value() - servoWallRearAngle.Value();
+	}
+	else // strafeDirection == RIGHT_DIRECTION
+	{
+		leftAngle = 180 - servoBikeAngle.Value() + servoWallRearAngle.Value();
+		rightAngle = servoBikeAngle.Value() - servoWallFrontAngle.Value();
+	}
+
+	SetServo(LEFT_SERVO, leftAngle);
+	SetServo(RIGHT_SERVO, rightAngle);
+
+	delay(SERVO_TRANSFORM_DELAY);
 }
