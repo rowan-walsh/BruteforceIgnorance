@@ -76,7 +76,7 @@
 #define TURN_135_DEG_DELAY 1000			// Arbitrary, untested
 #define COLLECTION_DELAY 1000			// Good
 #define COLLECTION_REVERSE_DELAY 500	// Good
-#define BRUSH_LOAD_TIMEOUT_DELAY 15000  // Experimental
+#define BRUSH_LOAD_TIMEOUT_DELAY 3000  // Experimental
 
 // LOOPING MANEUVER STATES
 #define MENU_STATE 0
@@ -341,7 +341,6 @@ void ProcessMenu()
 		Print("Switches: f");
 		Print(Microswitch(LEFT_FRONT_MICROSWITCH_PIN,10)); Print(Microswitch(RIGHT_FRONT_MICROSWITCH_PIN,10));
 		Print("s"); Print(Microswitch(LEFT_SIDE_MICROSWITCH_PIN,10)); Print(Microswitch(RIGHT_SIDE_MICROSWITCH_PIN,10));
-
 		delay(100);
 		return;
 	}
@@ -399,13 +398,16 @@ void WallFollowSensorUpdate()
 	if (HomeBeaconAcquired()) passedHomeBeacon = true;
 
 	// If no ball detected, debounce and then check again
-	if(!Armed() && !BreakBeam()) 
+	if(!leavingWall && !Armed() && !BreakBeam()) 
 	{
 		unsigned long startTime = millis();
-		while (!Armed() && !BreakBeam() && (millis() < startTime + 2500)) delay(10);
-		if (!Armed() && !BreakBeam()) leavingWall = true;		
+		while (!leavingWall && !Armed() && !BreakBeam() && (millis() < startTime + 1000)) 
+		{
+			Reset(); Print("Ball lost!");
+		}
+		if (!Armed() && !BreakBeam()) 
+			leavingWall = true;		
 	}
-	else leavingWall = false; // Keep going if we have a ball
 
 	// If going left and hit left switch, or going right and hit right switch, then switch direction
 	if (leftSide && (strafeDirection == LEFT_DIRECTION) || (rightSide && strafeDirection == RIGHT_DIRECTION))
@@ -447,6 +449,8 @@ void WallFollow()
 		{
 			Strafe();
 			WallFollowSensorUpdate();
+			Reset();
+			Print("Finding 10K bacon");
 			if (!leavingWall) return;
 			if (StopButton(100)) return; // escape condition
 		}
@@ -464,6 +468,9 @@ void WallFollow()
 			unsigned long startTime = millis();
 			while (!Armed() && (millis() < startTime + BRUSH_LOAD_TIMEOUT_DELAY))
 			{	
+				Reset();
+				Print("Rebounding");
+				delay(100);
 				if (StopButton(100)) return; // escape condition
 			}
 			if (Armed()) Fire;
@@ -499,9 +506,6 @@ void Strafe()
 	Reset();
 	Print("Strafe ");
 	Print((strafeDirection == LEFT_DIRECTION) ? "L " : "R ", analogRead(TARGET_IR_PIN));
-	if (!leavingWall) return;
-	LCD.setCursor(0,1);
-	LCD.print("Finding beacon");
 }
 
 
