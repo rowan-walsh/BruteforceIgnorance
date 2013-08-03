@@ -408,7 +408,7 @@ void WallFollowSensorUpdate()
 	else leavingWall = false; // Keep going if we have a ball
 
 	// If going left and hit left switch, or going right and hit right switch, then switch direction
-	if (leftSide && (strafeDirection == LEFT_DIRECTION)) || (rightSide && (strafeDirection == RIGHT_DIRECTION))
+	if (leftSide && (strafeDirection == LEFT_DIRECTION) || (rightSide && strafeDirection == RIGHT_DIRECTION))
 		SwitchWallFollowDirection();
 }
 
@@ -442,7 +442,7 @@ void WallFollow()
 	if(leavingWall)
 	{
 		LCD.setCursor(0,1);
-		if (passedHomeBeacon()) SwitchWallFollowDirection();
+		if (passedHomeBeacon) SwitchWallFollowDirection();
 		while (!HomeBeaconAcquired())
 		{
 			Strafe();
