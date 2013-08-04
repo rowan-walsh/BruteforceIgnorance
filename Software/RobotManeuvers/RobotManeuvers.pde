@@ -400,7 +400,7 @@ void WallFollowSensorUpdate()
 	UpdateWallFollowMicroswitches();
 	if (HomeBeaconAcquired()) passedHomeBeacon = true;
 
-	// If no ball detected, debounce and then check again
+/*	// If no ball detected, debounce and then check again
 	if(!leavingWall && !Armed() && !BreakBeam()) 
 	{
 		unsigned long startTime = millis();
@@ -410,15 +410,15 @@ void WallFollowSensorUpdate()
 		}
 		if (!Armed() && !BreakBeam()) 
 			leavingWall = true;		
-	}
+	}*/
 
 	// If going left and hit left switch, or going right and hit right switch, then switch direction
-	if (leftSide && (strafeDirection == LEFT_DIRECTION) || (rightSide && strafeDirection == RIGHT_DIRECTION))
-		SwitchWallFollowDirection();
-}
+		if (leftSide && (strafeDirection == LEFT_DIRECTION) || (rightSide && strafeDirection == RIGHT_DIRECTION))
+			SwitchWallFollowDirection();
+	}
 
-void SwitchWallFollowDirection()
-{
+	void SwitchWallFollowDirection()
+	{
 	passedHomeBeacon = false; // Haven't seen home beacon since direction is reset
 	strafeDirection *= -1;
 	
@@ -744,8 +744,10 @@ void AcquireWallFromCollect()
 
 	// Spin
 	Reset(); Print("Turning");
-	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * diffUpSpeed.Value());
-	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * -diffUpSpeed.Value());
+//	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * 1.5 * diffUpSpeed.Value());
+//	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * 1.5 * -diffUpSpeed.Value());
+	motor.speed(LEFT_MOTOR_PIN, 1023);
+	motor.speed(RIGHT_MOTOR_PIN, -1023);
 	do
 	{
 		if(StopButton(100)) return; // Escape condition
