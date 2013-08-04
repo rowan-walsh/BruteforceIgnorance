@@ -418,6 +418,10 @@ void SwitchWallFollowDirection()
 {
 	passedHomeBeacon = false; // Haven't seen home beacon since direction is reset
 	strafeDirection *= -1;
+	
+	motor.stop(LEFT_MOTOR_PIN);
+	motor.stop(RIGHT_MOTOR_PIN);
+
 	if (leftSide)
 	{
 		leftAngle = 180 - servoBikeAngle.Value() + servoWallRearAngle.Value();
@@ -428,8 +432,7 @@ void SwitchWallFollowDirection()
 		leftAngle = 180 - servoBikeAngle.Value() + servoWallFrontAngle.Value();
 		rightAngle = servoBikeAngle.Value() - servoWallRearAngle.Value();
 	}
-	motor.stop(LEFT_MOTOR_PIN);
-	motor.stop(RIGHT_MOTOR_PIN);
+	
 	SetServo(LEFT_SERVO, leftAngle);
 	SetServo(RIGHT_SERVO, rightAngle);
 	delay(SERVO_TRANSFORM_DELAY);
@@ -489,12 +492,12 @@ void Strafe()
 
 	if(strafeDirection == LEFT_DIRECTION)
 	{
-		leftAngle = 180 - servoBikeAngle.Value() + servoWallFrontAngle.Value();
+		leftAngle = 180 - servoBikeAngle.Value() - servoWallFrontAngle.Value();
 		rightAngle = servoBikeAngle.Value() - servoWallRearAngle.Value();
 	}
 	else // strafeDirection == RIGHT_DIRECTION
 	{
-		leftAngle = 180 - servoBikeAngle.Value() + servoWallRearAngle.Value();
+		leftAngle = 180 - servoBikeAngle.Value() - servoWallRearAngle.Value();
 		rightAngle = servoBikeAngle.Value() - servoWallFrontAngle.Value();
 	}
 
