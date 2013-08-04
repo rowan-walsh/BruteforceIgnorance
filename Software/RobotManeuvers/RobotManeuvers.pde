@@ -587,7 +587,7 @@ void AcquireTapeFromWall()
 	while(!qrdInnerLeft && !qrdInnerRight);
 }
 
-/*void FollowTapeSensorUpdate(int followDirection) // Update - Following tape
+void FollowTapeSensorUpdate(int followDirection) // Update - Following tape
 {
 	// Check if end has been found
 	if(followDirection == FOLLOW_UP_DIRECTION)
@@ -606,9 +606,9 @@ void AcquireTapeFromWall()
 	if(endFound) return; // Only check line-following stuff if not at the end
 	qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
 	qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
-}*/
+}
 
-/*void FollowTape(int followDirection) // Looping maneuver
+void FollowTape(int followDirection) // Looping maneuver
 {
 	FollowTapeSensorUpdate(followDirection);
 	SetServo(BALL_SERVO, servoCollectAngle.Value());
@@ -620,15 +620,8 @@ void AcquireTapeFromWall()
 	// If the end has been found,
 	if(endFound)
 	{
-		if(followDirection == FOLLOW_UP_DIRECTION) 			// while following tape up,
-		{
-			AcquireWallFromTape();								// find the front wall (cross tape-less gap)
-			maneuverState = WALL_FOLLOWING_STATE;				// begin wall following
-			endFound = false;
-			return;
-		}
-		else if(followDirection == FOLLOW_DOWN_DIRECTION)	// while following tape down,
-		{
+	 if(followDirection == FOLLOW_DOWN_DIRECTION)	// while following tape down,
+	 {
 			SquareTouch(diffDownSpeed.Value());					// square to collection wall
 			maneuverState = COLLECTION_STATE;					// begin collection maneuver
 			endFound = false;
@@ -672,7 +665,7 @@ void AcquireTapeFromWall()
 	Print("Steering: ", compensationSpeed);
 	LCD.setCursor(0, 1);
 	Print("Error: ", qrdError);
-}*/
+}
 
 void SquareTouch(int baseSpeed)
 {
@@ -750,7 +743,7 @@ void AcquireWallFromCollect()
 
 	// Spin
 	Reset(); Print("Turning");
-	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * DIFF_REVERSE * -diffUpSpeed.Value());
+	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * diffUpSpeed.Value());
 	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * -diffUpSpeed.Value());
 	do
 	{
