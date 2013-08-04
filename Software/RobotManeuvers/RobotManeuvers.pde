@@ -62,7 +62,7 @@
 // Differential steering
 #define LEFT_DIFF_MULT -1
 #define RIGHT_DIFF_MULT 1
-#define DIFF_REVERSE -1
+#define DIFF_REVERSE 1
 #define TOO_LEFT -1.0
 #define TOO_RIGHT 1.0
 #define OFF_TAPE 5.0
@@ -72,11 +72,11 @@
 #define REBOUND_DELAY 3000				// Fairly arbitrary
 #define WALL_FOLLOW_END_DELAY 1500		// Good
 #define SERVO_TRANSFORM_DELAY 1000		// Fairly arbitrary
-#define MOVE_OFF_WALL_DELAY 3000		// Arbitrary, probably too long
+#define MOVE_OFF_WALL_DELAY 500			// Arbitrary, probably too long
 #define TURN_135_DEG_DELAY 1000			// Arbitrary, untested
 #define COLLECTION_DELAY 1000			// Good
 #define COLLECTION_REVERSE_DELAY 500	// Good
-#define BRUSH_LOAD_TIMEOUT_DELAY 3000  // Experimental
+#define BRUSH_LOAD_TIMEOUT_DELAY 3000  	// Experimental
 
 // LOOPING MANEUVER STATES
 #define MENU_STATE 0
@@ -163,6 +163,13 @@ void setup()
 	RCServo0.attach(RCServo0Output);
 	RCServo1.attach(RCServo1Output);
 	RCServo2.attach(RCServo2Output);
+
+	// Random servo dance
+	SetServo(BALL_SERVO, SERVO_COLLECT_ANGLE);
+	delay(300);
+	SetServo(BALL_SERVO, SERVO_COLLECT_ANGLE - 10);
+	delay(300);
+	SetServo(BALL_SERVO, SERVO_COLLECT_ANGLE);
 }
 
 void loop()
@@ -425,14 +432,14 @@ void SwitchWallFollowDirection()
 	if (leftSide)
 	{
 		leftAngle = 180 - servoBikeAngle.Value() + servoWallRearAngle.Value();
-		rightAngle = servoBikeAngle.Value() - servoWallFrontAngle.Value();
+		rightAngle = servoBikeAngle.Value() + servoWallFrontAngle.Value();
 	}
 	else if (rightSide)
 	{
-		leftAngle = 180 - servoBikeAngle.Value() + servoWallFrontAngle.Value();
+		leftAngle = 180 - servoBikeAngle.Value() - servoWallFrontAngle.Value();
 		rightAngle = servoBikeAngle.Value() - servoWallRearAngle.Value();
 	}
-	
+
 	SetServo(LEFT_SERVO, leftAngle);
 	SetServo(RIGHT_SERVO, rightAngle);
 	delay(SERVO_TRANSFORM_DELAY);
@@ -492,8 +499,8 @@ void Strafe()
 
 	if(strafeDirection == LEFT_DIRECTION)
 	{
-		leftAngle = 180 - servoBikeAngle.Value() - servoWallFrontAngle.Value();
-		rightAngle = servoBikeAngle.Value() - servoWallRearAngle.Value();
+		leftAngle = 180 - servoBikeAngle.Value() + servoWallFrontAngle.Value();
+		rightAngle = servoBikeAngle.Value() + servoWallRearAngle.Value();
 	}
 	else // strafeDirection == RIGHT_DIRECTION
 	{
@@ -510,7 +517,6 @@ void Strafe()
 	Print("Strafe ");
 	Print((strafeDirection == LEFT_DIRECTION) ? "L " : "R ", analogRead(TARGET_IR_PIN));
 }
-
 
 void Fire() 
 {
