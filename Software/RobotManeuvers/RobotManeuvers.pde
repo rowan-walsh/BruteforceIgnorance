@@ -185,8 +185,8 @@ void loop()
 		case COLLECTION_STATE:
 		Collection();
 		break;
-		case TAPE_FOLLOW_UP_STATE:
-		FollowTape(FOLLOW_UP_DIRECTION);
+	//	case TAPE_FOLLOW_UP_STATE:
+	//	FollowTape(FOLLOW_UP_DIRECTION);
 		break;
 		case SECRET_LEVEL_STATE:
 		SecretFiringLevel();
@@ -587,7 +587,7 @@ void AcquireTapeFromWall()
 	while(!qrdInnerLeft && !qrdInnerRight);
 }
 
-void FollowTapeSensorUpdate(int followDirection) // Update - Following tape
+/*void FollowTapeSensorUpdate(int followDirection) // Update - Following tape
 {
 	// Check if end has been found
 	if(followDirection == FOLLOW_UP_DIRECTION)
@@ -606,9 +606,9 @@ void FollowTapeSensorUpdate(int followDirection) // Update - Following tape
 	if(endFound) return; // Only check line-following stuff if not at the end
 	qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
 	qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
-}
+}*/
 
-void FollowTape(int followDirection) // Looping maneuver
+/*void FollowTape(int followDirection) // Looping maneuver
 {
 	FollowTapeSensorUpdate(followDirection);
 	SetServo(BALL_SERVO, servoCollectAngle.Value());
@@ -672,11 +672,11 @@ void FollowTape(int followDirection) // Looping maneuver
 	Print("Steering: ", compensationSpeed);
 	LCD.setCursor(0, 1);
 	Print("Error: ", qrdError);
-}
+}*/
 
 void SquareTouch(int baseSpeed)
 {
-	LCD.setCursor(0,1); Print("Squaring up...");
+	Reset(); Print("Square touch");
 	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value()); // Engage collection
 	
 	do
@@ -711,7 +711,7 @@ void Collection()
 
 	if (ballCollected)
 	{
-		AcquireTapeFromCollect();
+		AcquireWallFromCollect();
 		maneuverState = WALL_FOLLOWING_STATE;
 		ballCollected = false;
 	} else BumpCollect();
@@ -735,16 +735,12 @@ void BumpCollect()
 	SquareTouch(diffDownSpeed.Value());
 }
 
-void AcquireTapeFromCollect() 
+void AcquireWallFromCollect() 
 {
-	// Set display state
-	Reset();
-	Print("Balls collected,"); LCD.setCursor(0,1);
-	Print("Finding tape...");
-
 	// Back up a certain distanced
 	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * DIFF_REVERSE * diffUpSpeed.Value());
 	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * DIFF_REVERSE * diffUpSpeed.Value());
+	Reset(); Print("Backing up");
 	delay(6 * COLLECTION_REVERSE_DELAY);
 
 	// Stop Motors
@@ -753,6 +749,7 @@ void AcquireTapeFromCollect()
 	delay(500);
 
 	// Spin
+	Reset(); Print("Turning");
 	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * DIFF_REVERSE * -diffUpSpeed.Value());
 	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * -diffUpSpeed.Value());
 	do
@@ -770,10 +767,11 @@ void AcquireTapeFromCollect()
 	// Disengage motors
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
+	Reset(); Print("Motors killed");
 	delay(1000); // ARBITRARY
 }
 
-void AcquireWallFromTape() 
+/*void AcquireWallFromTape() 
 {
 	Reset(); 
 	Print("Tape ended,"); LCD.setCursor(0,1);
@@ -795,4 +793,4 @@ void AcquireWallFromTape()
 	SetServo(RIGHT_SERVO, rightAngle);
 
 	delay(SERVO_TRANSFORM_DELAY);
-}
+}*/
