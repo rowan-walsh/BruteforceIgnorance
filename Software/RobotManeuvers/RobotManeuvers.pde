@@ -424,6 +424,7 @@ void SwitchWallFollowDirection()
 	
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
+	delay(1000); // can lower later
 
 	if (leftSide)
 	{
@@ -734,7 +735,7 @@ void AcquireWallFromCollect()
 	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * DIFF_REVERSE * diffUpSpeed.Value());
 	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * DIFF_REVERSE * diffUpSpeed.Value());
 	Reset(); Print("Backing up");
-	delay(6 * COLLECTION_REVERSE_DELAY);
+	delay(4 * COLLECTION_REVERSE_DELAY);
 
 	// Stop Motors
 	motor.stop(LEFT_MOTOR_PIN);
