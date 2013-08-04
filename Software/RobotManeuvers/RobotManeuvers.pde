@@ -72,7 +72,7 @@
 #define REBOUND_DELAY 3000				// Fairly arbitrary
 #define WALL_FOLLOW_END_DELAY 1500		// Good
 #define SERVO_TRANSFORM_DELAY 1000		// Fairly arbitrary
-#define MOVE_OFF_WALL_DELAY 500			// Arbitrary, probably too long
+#define MOVE_OFF_WALL_DELAY 1000		// Arbitrary, probably too long
 #define TURN_135_DEG_DELAY 1000			// Arbitrary, untested
 #define COLLECTION_DELAY 1000			// Good
 #define COLLECTION_REVERSE_DELAY 500	// Good
@@ -165,11 +165,7 @@ void setup()
 	RCServo2.attach(RCServo2Output);
 
 	// Random servo dance
-	SetServo(BALL_SERVO, SERVO_COLLECT_ANGLE);
-	delay(300);
-	SetServo(BALL_SERVO, SERVO_COLLECT_ANGLE - 10);
-	delay(300);
-	SetServo(BALL_SERVO, SERVO_COLLECT_ANGLE);
+	SetServo(BALL_SERVO, servoCollectAngle.Value());
 }
 
 void loop()
@@ -499,13 +495,13 @@ void Strafe()
 
 	if(strafeDirection == LEFT_DIRECTION)
 	{
-		leftAngle = 180 - servoBikeAngle.Value() + servoWallFrontAngle.Value();
-		rightAngle = servoBikeAngle.Value() + servoWallRearAngle.Value();
+		leftAngle = 180 - servoBikeAngle.Value() - servoWallFrontAngle.Value();
+		rightAngle = servoBikeAngle.Value() - servoWallRearAngle.Value();
 	}
 	else // strafeDirection == RIGHT_DIRECTION
 	{
-		leftAngle = 180 - servoBikeAngle.Value() - servoWallRearAngle.Value();
-		rightAngle = servoBikeAngle.Value() - servoWallFrontAngle.Value();
+		leftAngle = 180 - servoBikeAngle.Value() + servoWallRearAngle.Value();
+		rightAngle = servoBikeAngle.Value() + servoWallFrontAngle.Value();
 	}
 
 	SetServo(LEFT_SERVO, leftAngle);
@@ -563,13 +559,13 @@ void MoveOffWall()
 	// Make a controlled reverse
 	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * DIFF_REVERSE * diffDownSpeed.Value());
 	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * DIFF_REVERSE * diffDownSpeed.Value());
+	Reset(); Print("Backing up");
 	delay(MOVE_OFF_WALL_DELAY);
-
-	LCD.setCursor(0,1); Print("Turning 135deg  ");
 
 	// Make a controlled turn
 	motor.speed(LEFT_MOTOR_PIN, diffDownSpeed.Value() * strafeDirection);
 	motor.speed(RIGHT_MOTOR_PIN, diffDownSpeed.Value() * strafeDirection);
+	Reset(); Print("135 deg turn");
 	delay(TURN_135_DEG_DELAY);
 }
 
@@ -653,13 +649,13 @@ void FollowTape(int followDirection) // Looping maneuver
 	
 	if (qrdError >= 0) 
 	{
-		motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * (baseSpeed + compensationSpeed));
-		motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * baseSpeed);
+		motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * (-baseSpeed - compensationSpeed));
+		motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * -baseSpeed);
 	}
 	else
 	{
-		motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * baseSpeed);
-		motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * (baseSpeed - compensationSpeed));
+		motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * -baseSpeed);
+		motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * (-baseSpeed + compensationSpeed));
 	}
 
 	// Keep track of differential gain
@@ -681,7 +677,6 @@ void FollowTape(int followDirection) // Looping maneuver
 void SquareTouch(int baseSpeed)
 {
 	LCD.setCursor(0,1); Print("Squaring up...");
-
 	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value()); // Engage collection
 	
 	do
@@ -692,8 +687,8 @@ void SquareTouch(int baseSpeed)
 		// Disengage motors when touching wall
 		int leftSpeed = leftFront ? 0 : LEFT_DIFF_MULT * baseSpeed; 
 		int rightSpeed = rightFront ? 0 : RIGHT_DIFF_MULT * baseSpeed;
-		motor.speed(LEFT_MOTOR_PIN, leftSpeed);
-		motor.speed(RIGHT_MOTOR_PIN, rightSpeed);
+		motor.speed(LEFT_MOTOR_PIN, -leftSpeed);
+		motor.speed(RIGHT_MOTOR_PIN, -rightSpeed);
 
 		if (StopButton(100)) return; // escape condition
 	}
@@ -717,7 +712,7 @@ void Collection()
 	if (ballCollected)
 	{
 		AcquireTapeFromCollect();
-		maneuverState = TAPE_FOLLOW_UP_STATE;
+		maneuverState = WALL_FOLLOWING_STATE;
 		ballCollected = false;
 	} else BumpCollect();
 }
@@ -731,7 +726,7 @@ void BumpCollect()
 	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * DIFF_REVERSE * diffUpSpeed.Value());
 	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * DIFF_REVERSE * diffUpSpeed.Value());
 	delay(COLLECTION_REVERSE_DELAY);
-	
+
 	// Disengage navigation motors
 	motor.stop(LEFT_MOTOR_PIN); 
 	motor.stop(RIGHT_MOTOR_PIN);
@@ -750,24 +745,25 @@ void AcquireTapeFromCollect()
 	// Back up a certain distanced
 	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * DIFF_REVERSE * diffUpSpeed.Value());
 	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * DIFF_REVERSE * diffUpSpeed.Value());
-	delay(3 * COLLECTION_REVERSE_DELAY);
+	delay(6 * COLLECTION_REVERSE_DELAY);
 
 	// Stop Motors
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
+	delay(500);
 
 	// Spin
-	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * DIFF_REVERSE * diffUpSpeed.Value());
-	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * diffUpSpeed.Value());
+	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * DIFF_REVERSE * -diffUpSpeed.Value());
+	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * -diffUpSpeed.Value());
 	do
 	{
-		delay(20);
 		if(StopButton(100)) return; // Escape condition
 	}
 	while(!HomeBeaconAcquired(5));
 
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
+	delay(500);
 
 	SquareTouch(diffUpSpeed.Value());
 
@@ -786,13 +782,13 @@ void AcquireWallFromTape()
 
 	if(strafeDirection == LEFT_DIRECTION)
 	{
-		leftAngle = 180 - servoBikeAngle.Value() + servoWallFrontAngle.Value();
+		leftAngle = 180 - servoBikeAngle.Value() - servoWallFrontAngle.Value();
 		rightAngle = servoBikeAngle.Value() - servoWallRearAngle.Value();
 	}
 	else // strafeDirection == RIGHT_DIRECTION
 	{
 		leftAngle = 180 - servoBikeAngle.Value() + servoWallRearAngle.Value();
-		rightAngle = servoBikeAngle.Value() - servoWallFrontAngle.Value();
+		rightAngle = servoBikeAngle.Value() + servoWallFrontAngle.Value();
 	}
 
 	SetServo(LEFT_SERVO, leftAngle);
