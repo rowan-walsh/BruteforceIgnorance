@@ -746,8 +746,8 @@ void AcquireWallFromCollect()
 	Reset(); Print("Turning");
 //	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * 1.5 * diffUpSpeed.Value());
 //	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * 1.5 * -diffUpSpeed.Value());
-	motor.speed(LEFT_MOTOR_PIN, 1023);
-	motor.speed(RIGHT_MOTOR_PIN, 1023);
+	motor.speed(LEFT_MOTOR_PIN, -800);
+	motor.speed(RIGHT_MOTOR_PIN, -800);
 	do
 	{
 		if(StopButton(100)) return; // Escape condition
