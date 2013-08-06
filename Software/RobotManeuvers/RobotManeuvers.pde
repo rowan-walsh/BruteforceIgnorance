@@ -76,7 +76,7 @@
 #define TURN_135_DEG_DELAY 1000			// Arbitrary, untested
 #define COLLECTION_DELAY 1000			// Good
 #define COLLECTION_REVERSE_DELAY 500	// Good
-#define BRUSH_LOAD_TIMEOUT_DELAY 3000  	// Experimental
+#define BRUSH_LOAD_TIMEOUT_DELAY 4000  	// Experimental
 
 // LOOPING MANEUVER STATES
 #define MENU_STATE 0
@@ -294,7 +294,7 @@ bool BreakBeam(int debounceTime = 15)
 {
 	if(analogRead(BREAK_BEAM_SENSOR_PIN) >= breakBeamThreshold.Value()) return false;
 	delay(debounceTime);
-	return (analogRead(BREAK_BEAM_SENSOR_PIN) >= breakBeamThreshold.Value());
+	return (analogRead(BREAK_BEAM_SENSOR_PIN) <= breakBeamThreshold.Value());
 }
 
 // Returns a bool indicating whether a target is detected
@@ -476,7 +476,7 @@ void WallFollow()
 			while (!Armed() && (millis() < startTime + BRUSH_LOAD_TIMEOUT_DELAY))
 			{	
 				Reset();
-				Print("Rebounding");
+				Print("Cycling");
 				delay(100);
 				if (StopButton(100)) return; // escape condition
 			}
@@ -519,11 +519,14 @@ void Fire()
 {
 	if(!Armed()) return;
 	// Disengage navigation and collection, engage firing
+	motor.stop(BRUSH_MOTOR_PIN);
+	
+	//if (strafeDirection == LEFT_DIRECTION) motor.stop(LEFT_MOTOR_PIN);
+	//else motor.stop(RIGHT_MOTOR_PIN);
+	//delay(500);
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
-	motor.stop(BRUSH_MOTOR_PIN);
 	motor.speed(SHOOTING_MOTOR_PIN, firingSpeed.Value());
-	//motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
 
 	// Load firing mechanism
 	LCD.setCursor(0,1);
@@ -577,10 +580,9 @@ void AcquireTapeFromWall()
 	Reset();
 	Print("Acquiring Tape");
 	MoveOffWall();
-
 	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * diffDownSpeed.Value());
 	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * diffDownSpeed.Value());
-
+	
 	do
 	{
 		qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
