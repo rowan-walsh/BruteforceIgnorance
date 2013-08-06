@@ -518,11 +518,12 @@ void Strafe()
 void Fire() 
 {
 	if(!Armed()) return;
-	// Disengage navigationm; engage collection and firing
+	// Disengage navigation and collection, engage firing
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
-	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
+	motor.stop(BRUSH_MOTOR_PIN);
 	motor.speed(SHOOTING_MOTOR_PIN, firingSpeed.Value());
+	//motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
 
 	// Load firing mechanism
 	LCD.setCursor(0,1);
@@ -539,6 +540,7 @@ void Fire()
 	// Stop firing rotor motor
 	delay(500); // Allow time for ball to shoot
 	motor.stop(SHOOTING_MOTOR_PIN);
+	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
 	delay(REBOUND_DELAY);
 }
 
