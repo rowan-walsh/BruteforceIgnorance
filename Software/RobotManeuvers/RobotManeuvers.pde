@@ -333,10 +333,11 @@ void ProcessMenu()
 	int selectedItem = knob(MENU_ADJUST_KNOB) / (1024 / (itemCount + 2));
 	if(selectedItem > itemCount + 1) selectedItem = itemCount + 1; // Normalize the selection
 
+	Reset();
+
 	// Display comparator board states
 	if(selectedItem == itemCount)
 	{
-		Reset();
 		Print("QRD: ");
 		Print(QRD(OUTER_LEFT_QRD_PIN)); Print(QRD(INNER_LEFT_QRD_PIN));
 		Print(QRD(INNER_RIGHT_QRD_PIN)); Print(QRD(OUTER_RIGHT_QRD_PIN));
@@ -350,7 +351,6 @@ void ProcessMenu()
 	else if(selectedItem == itemCount + 1)
 	{
 		int selectedState = knobValue / 205 + 1;	// Allow user to select states 1-5 (not zero)
-		Reset(); 
 		Print("Current state: ", lastState); LCD.setCursor(0,1); 
 		Print("Set to ", selectedState); Print(" ?");
 		if(StopButton()) lastState = selectedState;
@@ -359,12 +359,11 @@ void ProcessMenu()
 	}
 
 	// Display the item information
-	Reset(); 
 	Print(items[selectedItem].Name()); Print(" "); Print(items[selectedItem].Value());
 
 	if(selectedItem == 0) Print(" ", analogRead(TARGET_IR_PIN));
-	else if(selectedItem == 2) Print(" ", analogRead(COLLECT_QRD_PIN));
 	else if(selectedItem == 1) Print(" ", analogRead(HOME_BEACON_IR_PIN));
+	else if(selectedItem == 2) Print(" ", analogRead(COLLECT_QRD_PIN));
 	else if(selectedItem == 3) Print(" ", analogRead(BREAK_BEAM_SENSOR_PIN));
 
 	LCD.setCursor(0,1);
@@ -398,29 +397,32 @@ void SecretFiringLevel()
 void WallFollowSensorUpdate()
 {
 	UpdateWallFollowMicroswitches();
-	if (HomeBeaconAcquired()) passedHomeBeacon = true;
+	if (!passedHomeBeacon && HomeBeaconAcquired()) passedHomeBeacon = true;
 
-/*	// If no ball detected, debounce and then check again
+	// If no ball detected, debounce and then check again
 	if(!leavingWall && !Armed() && !BreakBeam()) 
 	{
 		unsigned long startTime = millis();
-		while (!leavingWall && !Armed() && !BreakBeam() && (millis() < startTime + 1000)) 
+		do
 		{
 			Reset(); Print("Ball lost!");
+			delay(10);
 		}
+		while (!leavingWall && !Armed() && !BreakBeam() && (millis() < startTime + 1000)); 
+
 		if (!Armed() && !BreakBeam()) 
 			leavingWall = true;		
-	}*/
-
-	// If going left and hit left switch, or going right and hit right switch, then switch direction
-		if (leftSide && (strafeDirection == LEFT_DIRECTION) || (rightSide && strafeDirection == RIGHT_DIRECTION))
-			SwitchWallFollowDirection();
 	}
 
-	void SwitchWallFollowDirection()
-	{
+	// If going left and hit left switch, or going right and hit right switch, then switch direction
+	if ((leftSide && (strafeDirection == LEFT_DIRECTION)) || (rightSide && (strafeDirection == RIGHT_DIRECTION)))
+		SwitchWallFollowDirection();
+}
+
+void SwitchWallFollowDirection()
+{
 	passedHomeBeacon = false; // Haven't seen home beacon since direction is reset
-	strafeDirection *= -1;
+	strafeDirection *= -1; // Reverse strafing direction
 	
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
@@ -450,14 +452,14 @@ void WallFollow()
 	// End the wall following maneuver
 	if(leavingWall)
 	{
-		LCD.setCursor(0,1);
 		if (passedHomeBeacon) SwitchWallFollowDirection();
+		passedHomeBeacon = false; // Not strictly necessary but could prevent bugs later
 		while (!HomeBeaconAcquired())
 		{
 			Strafe();
 			WallFollowSensorUpdate();
 			Reset();
-			Print("Finding 10K bacon");
+			Print("Finding 10K IR");
 			if (!leavingWall) return;
 			if (StopButton(100)) return; // escape condition
 		}
@@ -475,18 +477,19 @@ void WallFollow()
 			unsigned long startTime = millis();
 			while (!Armed() && (millis() < startTime + BRUSH_LOAD_TIMEOUT_DELAY))
 			{	
-				Reset();
+				LCD.setCursor(0,1);
 				Print("Cycling");
 				delay(100);
 				if (StopButton(100)) return; // escape condition
 			}
 			if (Armed()) Fire;
 		}
+		lcdRefreshCount = 1;
 	}
 	Strafe();
 }
 
-// Strafes along front wall while performing ON/OFF distance correction
+// Strafes along front wall
 void Strafe()
 {
 	// Engage collection, set strafing speeds
@@ -623,15 +626,12 @@ void FollowTape(int followDirection) // Looping maneuver
 	int baseSpeed = (followDirection == FOLLOW_UP_DIRECTION) ? diffUpSpeed.Value() : diffDownSpeed.Value();
 
 	// If the end has been found,
-	if(endFound)
+	if(endFound && (followDirection == FOLLOW_DOWN_DIRECTION))
 	{
-	 if(followDirection == FOLLOW_DOWN_DIRECTION)	// while following tape down,
-	 {
-			SquareTouch(diffDownSpeed.Value());					// square to collection wall
-			maneuverState = COLLECTION_STATE;					// begin collection maneuver
-			endFound = false;
-			return;
-		}
+		SquareTouch(diffDownSpeed.Value());					// square to collection wall
+		maneuverState = COLLECTION_STATE;					// begin collection maneuver
+		endFound = false;
+		return;
 	}
 
 	// Compute QRD error
