@@ -79,7 +79,7 @@
 #define WALL_FOLLOW_END_DELAY 1500		// Good
 #define SERVO_TRANSFORM_DELAY 1000		// Fairly arbitrary
 #define MOVE_OFF_WALL_DELAY 1000		// Arbitrary, probably too long
-#define TURN_180_DEG_DELAY 1000			// Arbitrary, untested
+#define TURN_180_DEG_DELAY 1500			// Arbitrary
 #define COLLECTION_DELAY 1000			// Good
 #define COLLECTION_REVERSE_DELAY 500	// Good
 #define BRUSH_LOAD_TIMEOUT_DELAY 4000  	// Experimental
@@ -432,8 +432,6 @@ void WallFollowSensorUpdate()
 
 void SwitchWallFollowDirection()
 {
-	strafeDirection *= -1; // Reverse strafing direction
-	
 	//if(!passedHomeBeacon)
 	//{
 	//passedHomeBeacon = false; // Haven't seen home beacon since direction is reset
@@ -446,16 +444,18 @@ void SwitchWallFollowDirection()
 	motor.stop(RIGHT_MOTOR_PIN);
 	delay(1000); // can lower later
 
-	if (leftSide)
+	if (strafeDirection == LEFT_DIRECTION)
 	{
 		leftAngle = 180 - BIKE_ANGLE_CONSTANT + servoWallRearAngle.Value();
 		rightAngle = BIKE_ANGLE_CONSTANT + servoWallFrontAngle.Value();
 	}
-	else if (rightSide)
+	else if (strafeDirection == RIGHT_DIRECTION)
 	{
 		leftAngle = 180 - BIKE_ANGLE_CONSTANT - servoWallFrontAngle.Value();
 		rightAngle = BIKE_ANGLE_CONSTANT - servoWallRearAngle.Value();
 	}
+
+	strafeDirection *= -1; // Reverse strafing direction
 
 	SetServo(LEFT_SERVO, leftAngle);
 	SetServo(RIGHT_SERVO, rightAngle);
@@ -480,7 +480,11 @@ void WallFollow()
 			Strafe();
 			WallFollowSensorUpdate();
 			//if (!leavingWall) return;
-			if (StopButton(100)) return; // escape condition
+			if (StopButton(100))
+			{
+				leavingWall = false;
+				return; // escape condition
+			}
 		}
 		Reset();
 		Print("Found 10k bacon");
@@ -786,8 +790,8 @@ void BumpCollect()
 void AcquireWallFromCollect() 
 {
 	// Back up a certain distance
-	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * DIFF_REVERSE * diffUpSpeed.Value());
-	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * DIFF_REVERSE * diffUpSpeed.Value());
+	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * DIFF_REVERSE * 900);
+	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * DIFF_REVERSE * 900);
 	Reset(); Print("Backing up");
 	delay(3 * COLLECTION_REVERSE_DELAY);
 
@@ -867,6 +871,8 @@ void EbayWait()
 			Reset();
 			return;
 		}
+
+		delay(50);
 	}
 
 	Reset();
