@@ -34,6 +34,10 @@
 #define 180_TURN_DELAY 20
 
 // PIN DECLARATIONS
+// LED Pins
+#define TARGET_LED 15
+#define COLLECT_LED 11
+#define BREAK_BEAM_LED 8
 // Servo indices
 #define BALL_SERVO 0
 #define LEFT_SERVO 1
@@ -173,7 +177,7 @@ unsigned int lcdRefreshCount = 0; // Current iteration. Do not change this value
 void setup()
 {
 	portMode(0, INPUT);       
-	portMode(1, INPUT); 
+	portMode(1, OUTPUT); 
 	RCServo0.attach(RCServo0Output);
 	RCServo1.attach(RCServo1Output);
 	RCServo2.attach(RCServo2Output);
@@ -184,31 +188,37 @@ void setup()
 
 void loop()
 {	
+	// for(int i = 8; i < 16; i++)
+	// 	SetLed(i, true);
+	// delay(500);
+	// for(int i = 8; i < 16; i++)
+	// 	SetLed(i, false);
+	// delay(500);
 	Update();
 	switch(maneuverState)
 	{
 		case MENU_STATE:
-			ProcessMenu();
+		ProcessMenu();
 		break;
 		case WALL_FOLLOWING_STATE:
-			WallFollow();
+		WallFollow();
 		break;
 		case TAPE_FOLLOW_DOWN_STATE:
-			FollowTape(FOLLOW_DOWN_DIRECTION);
+		FollowTape(FOLLOW_DOWN_DIRECTION);
 		break;
 		case COLLECTION_STATE:
-			Collection();
+		Collection();
 		break;
 		case SECRET_LEVEL_STATE:
-			SecretFiringLevel();
+		SecretFiringLevel();
 		break;
 		case BEGINNING_STATE:
-			BeginningMovement();
+		BeginningMovement();
 		break;
 		default:
-			Reset();
-			Print("Error: no state"); LCD.setCursor(0,1);
-			Print("???");
+		Reset();
+		Print("Error: no state"); LCD.setCursor(0,1);
+		Print("???");
 		break;
 	}
 }
@@ -219,7 +229,7 @@ void SetServo(int servoIndex, int servoAngle)
 	// Constrain possible angles
 	if (servoAngle > 180) servoAngle = 180;
 	else if (servoAngle < 0) servoAngle = 0;
-	
+
 	// Set angle of specific servo
 	if(servoIndex == 0)	RCServo0.write(servoAngle);
 	else if (servoIndex == 1) RCServo1.write(servoAngle);
@@ -263,6 +273,12 @@ inline bool StopButton(int debounceTime = 40)
 	return stopbutton();
 }
 
+// Turns on or off the led. Pin logic is already reversed, so HIGH = true, LOW = false
+void SetLed(int ledPin, bool ledState)
+{
+	digitalWrite(ledPin, !ledState);
+}
+
 // Returns a bool indicating whether the given microswitch is being pressed
 // Optional: Specify a debounce time
 bool Microswitch(int microswitchPin, int debounceTime = 15)
@@ -298,25 +314,55 @@ inline bool QRD(int qrdPin) {
 // Returns a bool indicating whether the collection QRD is being triggered by a ball
 bool Armed(int debounceTime = 15)
 {
-	if(analogRead(COLLECT_QRD_PIN) >= ballCollectThreshold.Value()) return false;
+	if(analogRead(COLLECT_QRD_PIN) >= ballCollectThreshold.Value()) 
+	{
+		SetLed(COLLECT_LED, false);
+		return false;
+	}
 	delay(debounceTime);
-	return (analogRead(COLLECT_QRD_PIN) < ballCollectThreshold.Value());
+	if (analogRead(COLLECT_QRD_PIN) < ballCollectThreshold.Value())
+	{
+		SetLed(COLLECT_LED, true);
+		return true;
+	}
+	SetLed(COLLECT_LED, false);
+	return false;
 }
 
 // Returns a bool indicating whether the laser break beam has been triggered
 bool BreakBeam(int debounceTime = 15)
 {
-	if(analogRead(BREAK_BEAM_SENSOR_PIN) < breakBeamThreshold.Value()) return false;
+	if(analogRead(BREAK_BEAM_SENSOR_PIN) < breakBeamThreshold.Value()) 
+	{
+		SetLed(BREAK_BEAM_LED, false);
+		return false;
+	}
 	delay(debounceTime);
-	return (analogRead(BREAK_BEAM_SENSOR_PIN) >= breakBeamThreshold.Value());
+	if (analogRead(BREAK_BEAM_SENSOR_PIN) >= breakBeamThreshold.Value())
+	{
+		SetLed(BREAK_BEAM_LED, true);
+		return true;
+	}
+	SetLed(BREAK_BEAM_LED, false);
+	return false;
 }
 
 // Returns a bool indicating whether a target is detected
 bool TargetAcquired(int debounceTime = 15)
 {
-	if(analogRead(TARGET_IR_PIN) < targetThreshold.Value()) return false;
+	if(analogRead(TARGET_IR_PIN) < targetThreshold.Value())
+	{
+		SetLed(TARGET_LED, false);
+		return false;
+	}
 	delay(debounceTime);
-	return (analogRead(TARGET_IR_PIN) >= targetThreshold.Value());
+	if (analogRead(TARGET_IR_PIN) >= targetThreshold.Value())
+	{
+		SetLed(TARGET_LED, true);
+		return true;
+	}
+	SetLed(TARGET_LED, false);
+	return false;
 }
 
 // Returns a bool indicating whether the home beacon is detected
@@ -500,6 +546,7 @@ void WallFollow()
 
 	if(TargetAcquired())
 	{
+	//	SetLed(TARGET_LED, true);
 		if(Armed()) Fire();
 		else if (BreakBeam())
 		{
@@ -516,6 +563,8 @@ void WallFollow()
 		}
 		lcdRefreshCount = 1;
 	}
+	//else 
+	//	SetLed(TARGET_LED, false);
 	Strafe();
 }
 
