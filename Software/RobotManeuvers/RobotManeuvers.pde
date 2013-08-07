@@ -149,7 +149,7 @@ MenuItem servoWallFrontAngle = MenuItem("Front ang", SERVO_WALL_FRONT_ANGLE);
 MenuItem items[] = 
 {
 	targetThreshold, homeBeaconThreshold, ballCollectThreshold, breakBeamThreshold,
-	qrdProportionalGain, qrdDerivativeGain, 
+	qrdProportionalGain, qrdDerivativeGain, rightStrafeGain,
 	brushSpeed, firingSpeed, bikeSpeed, diffUpSpeed, diffDownSpeed, 
 	servoLoadAngle, servoCollectAngle, servoBikeAngle, servoDiffAngle, servoWallRearAngle, servoWallFrontAngle
 };
@@ -499,18 +499,20 @@ void Strafe()
 {
 	// Engage collection, set strafing speeds
 	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
-	motor.speed(LEFT_MOTOR_PIN, strafeDirection * bikeSpeed.Value());
-	motor.speed(RIGHT_MOTOR_PIN, strafeDirection * bikeSpeed.Value() * (rightStrafeGain.Value() / 1000));
 
 	if(strafeDirection == LEFT_DIRECTION)
 	{
 		leftAngle = 180 - servoBikeAngle.Value() - servoWallFrontAngle.Value();
 		rightAngle = servoBikeAngle.Value() - servoWallRearAngle.Value();
+		motor.speed(LEFT_MOTOR_PIN, strafeDirection * bikeSpeed.Value());
+		motor.speed(RIGHT_MOTOR_PIN, strafeDirection * bikeSpeed.Value());
 	}
 	else // strafeDirection == RIGHT_DIRECTION
 	{
 		leftAngle = 180 - servoBikeAngle.Value() + servoWallRearAngle.Value();
 		rightAngle = servoBikeAngle.Value() + servoWallFrontAngle.Value();
+		motor.speed(LEFT_MOTOR_PIN, strafeDirection * bikeSpeed.Value()* (rightStrafeGain.Value() / 1000));
+		motor.speed(RIGHT_MOTOR_PIN, strafeDirection * bikeSpeed.Value() * (rightStrafeGain.Value() / 1000));
 	}
 
 	SetServo(LEFT_SERVO, leftAngle);
