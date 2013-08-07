@@ -69,6 +69,9 @@
 #define OFF_TAPE 2.0
 
 // OTHER CONSTANTS
+// Angle Constants
+#define DIFF_ANGLE_CONSTANT 0
+#define BIKE_ANGLE_CONSTANT 144
 // Delays
 #define REBOUND_DELAY 3000				// Fairly arbitrary
 #define WALL_FOLLOW_END_DELAY 1500		// Good
@@ -143,8 +146,6 @@ MenuItem diffDownSpeed = MenuItem("Dif-D Vel", DIFF_DOWN_SPEED);
 // Servo angles
 MenuItem servoLoadAngle = MenuItem("Load ang", SERVO_LOAD_ANGLE);
 MenuItem servoCollectAngle = MenuItem("Col ang", SERVO_COLLECT_ANGLE);
-MenuItem servoBikeAngle = MenuItem("Bike ang", SERVO_BIKE_ANGLE);
-MenuItem servoDiffAngle = MenuItem("Dif ang", SERVO_DIFF_ANGLE);
 MenuItem servoWallRearAngle = MenuItem("Rear ang", SERVO_WALL_REAR_ANGLE);
 MenuItem servoWallFrontAngle = MenuItem("Front ang", SERVO_WALL_FRONT_ANGLE);
 
@@ -154,9 +155,9 @@ MenuItem items[] =
 	targetThreshold, homeBeaconThreshold, ballCollectThreshold, breakBeamThreshold,
 	qrdProportionalGain, qrdDerivativeGain, rightStrafeGain,
 	brushSpeed, firingSpeed, bikeSpeed, diffUpSpeed, diffDownSpeed, 
-	servoLoadAngle, servoCollectAngle, servoBikeAngle, servoDiffAngle, servoWallRearAngle, servoWallFrontAngle
+	servoLoadAngle, servoCollectAngle, servoWallRearAngle, servoWallFrontAngle
 };
-const int itemCount = 18; // must equal menu item array size
+const int itemCount = 16; // must equal menu item array size
 
 const int lcdRefreshPeriod = 30; // Update LCD screen every n iterations. Larger = fewer updates. Smaller = flicker
 unsigned int lcdRefreshCount = 0; // Current iteration. Do not change this value
@@ -190,9 +191,6 @@ void loop()
 		case COLLECTION_STATE:
 			Collection();
 		break;
-		//	case TAPE_FOLLOW_UP_STATE:
-		//	FollowTape(FOLLOW_UP_DIRECTION);
-		//	break;
 		case SECRET_LEVEL_STATE:
 			SecretFiringLevel();
 		break;
@@ -438,13 +436,13 @@ void SwitchWallFollowDirection()
 
 	if (leftSide)
 	{
-		leftAngle = 180 - servoBikeAngle.Value() + servoWallRearAngle.Value();
-		rightAngle = servoBikeAngle.Value() + servoWallFrontAngle.Value();
+		leftAngle = 180 - BIKE_ANGLE_CONSTANT + servoWallRearAngle.Value();
+		rightAngle = BIKE_ANGLE_CONSTANT + servoWallFrontAngle.Value();
 	}
 	else if (rightSide)
 	{
-		leftAngle = 180 - servoBikeAngle.Value() - servoWallFrontAngle.Value();
-		rightAngle = servoBikeAngle.Value() - servoWallRearAngle.Value();
+		leftAngle = 180 - BIKE_ANGLE_CONSTANT - servoWallFrontAngle.Value();
+		rightAngle = BIKE_ANGLE_CONSTANT - servoWallRearAngle.Value();
 	}
 
 	SetServo(LEFT_SERVO, leftAngle);
@@ -509,14 +507,14 @@ void Strafe()
 
 	if(strafeDirection == LEFT_DIRECTION)
 	{
-		leftAngle = 180 - servoBikeAngle.Value() - servoWallFrontAngle.Value();
-		rightAngle = servoBikeAngle.Value() - servoWallRearAngle.Value();
+		leftAngle = 180 - BIKE_ANGLE_CONSTANT - servoWallFrontAngle.Value();
+		rightAngle = BIKE_ANGLE_CONSTANT - servoWallRearAngle.Value();
 		motorSpeed = strafeDirection * bikeSpeed.Value();
 	}
 	else // strafeDirection == RIGHT_DIRECTION
 	{
-		leftAngle = 180 - servoBikeAngle.Value() + servoWallRearAngle.Value();
-		rightAngle = servoBikeAngle.Value() + servoWallFrontAngle.Value();
+		leftAngle = 180 - BIKE_ANGLE_CONSTANT + servoWallRearAngle.Value();
+		rightAngle = BIKE_ANGLE_CONSTANT + servoWallFrontAngle.Value();
 		motorSpeed = strafeDirection * bikeSpeed.Value() * rightStrafeGain.Value() / 1000;
 	}
 
@@ -576,8 +574,8 @@ void MoveOffWall()
 	delay(500); // allow motors to come to a halt
 
 	// Rotate servos
-	SetServo(LEFT_SERVO, 180 - servoDiffAngle.Value()); 
-	SetServo(RIGHT_SERVO, servoDiffAngle.Value());
+	SetServo(LEFT_SERVO, 180 - DIFF_ANGLE_CONSTANT); 
+	SetServo(RIGHT_SERVO, DIFF_ANGLE_CONSTANT);
 	delay(SERVO_TRANSFORM_DELAY);
 
 	// Make a controlled reverse
@@ -602,8 +600,8 @@ void AcquireTapeFromWall()
 	int rightSpeed = 900 * strafeDirection;
 	unsigned long turnTime = millis();
 
-	SetServo(LEFT_SERVO, 180 - servoDiffAngle.Value());
-	SetServo(RIGHT_SERVO, servoDiffAngle.Value());
+	SetServo(LEFT_SERVO, 180 - DIFF_ANGLE_CONSTANT);
+	SetServo(RIGHT_SERVO, DIFF_ANGLE_CONSTANT);
 
 	do
 	{
@@ -659,8 +657,8 @@ void FollowTape(int followDirection) // Looping maneuver
 {
 	FollowTapeSensorUpdate(followDirection);
 	SetServo(BALL_SERVO, servoCollectAngle.Value());
-	SetServo(LEFT_SERVO, 180 - servoDiffAngle.Value());
-	SetServo(RIGHT_SERVO, servoDiffAngle.Value());
+	SetServo(LEFT_SERVO, 180 - DIFF_ANGLE_CONSTANT);
+	SetServo(RIGHT_SERVO, DIFF_ANGLE_CONSTANT);
 
 	int baseSpeed = (followDirection == FOLLOW_UP_DIRECTION) ? diffUpSpeed.Value() : diffDownSpeed.Value();
 
@@ -743,8 +741,8 @@ void Collection()
 	CollectionSensorUpdate();
 
 	SetServo(BALL_SERVO, servoCollectAngle.Value());
-	SetServo(LEFT_SERVO, 180 - servoDiffAngle.Value());
-	SetServo(RIGHT_SERVO, servoDiffAngle.Value());
+	SetServo(LEFT_SERVO, 180 - DIFF_ANGLE_CONSTANT);
+	SetServo(RIGHT_SERVO, DIFF_ANGLE_CONSTANT);
 
 	if (ballCollected)
 	{
