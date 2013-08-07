@@ -65,7 +65,7 @@
 #define DIFF_REVERSE 1
 #define TOO_LEFT -1.0
 #define TOO_RIGHT 1.0
-#define OFF_TAPE 5.0
+#define OFF_TAPE 2.0
 
 // OTHER CONSTANTS
 // Delays
