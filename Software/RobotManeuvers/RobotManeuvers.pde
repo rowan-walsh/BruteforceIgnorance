@@ -78,7 +78,7 @@
 #define COLLECTION_DELAY 1000			// Good
 #define COLLECTION_REVERSE_DELAY 500	// Good
 #define BRUSH_LOAD_TIMEOUT_DELAY 4000  	// Experimental
-#define ACQUIRE_TAPE_TURN_DELAY 750		// Experimental
+#define ACQUIRE_TAPE_TURN_DELAY 800		// Experimental
 
 // LOOPING MANEUVER STATES
 #define MENU_STATE 0
@@ -113,6 +113,7 @@ bool frontTouchWall = false;
 bool backTouchWall = false;
 int leftAngle = 0;
 int rightAngle = 0;
+int motorSpeed = 0;
 bool leavingWall = false;
 bool passedHomeBeacon = false;
 // Tape Following
@@ -196,8 +197,7 @@ void loop()
 			SecretFiringLevel();
 		break;
 		case BEGINNING_STATE:
-			AcquireTapeFromWall();
-			maneuverState = TAPE_FOLLOW_DOWN_STATE;
+			BeginningMovement();
 		break;
 		default:
 			Reset();
@@ -458,7 +458,7 @@ void WallFollow()
 	SetServo(BALL_SERVO, servoCollectAngle.Value());
 
 	// End the wall following maneuver
-	/*if(leavingWall)
+	if(leavingWall)
 	{
 		if (passedHomeBeacon) SwitchWallFollowDirection();
 		passedHomeBeacon = false; // Not strictly necessary but could prevent bugs later
@@ -478,7 +478,7 @@ void WallFollow()
 		maneuverState = TAPE_FOLLOW_DOWN_STATE;
 		leavingWall = false;
 		return;
-	}*/
+	}
 
 	if(TargetAcquired())
 	{
@@ -511,19 +511,20 @@ void Strafe()
 	{
 		leftAngle = 180 - servoBikeAngle.Value() - servoWallFrontAngle.Value();
 		rightAngle = servoBikeAngle.Value() - servoWallRearAngle.Value();
-		motor.speed(LEFT_MOTOR_PIN, strafeDirection * bikeSpeed.Value());
-		motor.speed(RIGHT_MOTOR_PIN, strafeDirection * bikeSpeed.Value());
+		motorSpeed = strafeDirection * bikeSpeed.Value();
 	}
 	else // strafeDirection == RIGHT_DIRECTION
 	{
 		leftAngle = 180 - servoBikeAngle.Value() + servoWallRearAngle.Value();
 		rightAngle = servoBikeAngle.Value() + servoWallFrontAngle.Value();
-		motor.speed(LEFT_MOTOR_PIN, strafeDirection * bikeSpeed.Value()* (rightStrafeGain.Value() / 1000));
-		motor.speed(RIGHT_MOTOR_PIN, strafeDirection * bikeSpeed.Value() * (rightStrafeGain.Value() / 1000));
+		motorSpeed = strafeDirection * bikeSpeed.Value() * rightStrafeGain.Value() / 1000;
 	}
 
 	SetServo(LEFT_SERVO, leftAngle);
 	SetServo(RIGHT_SERVO, rightAngle);
+
+	motor.speed(LEFT_MOTOR_PIN, motorSpeed);
+	motor.speed(RIGHT_MOTOR_PIN, motorSpeed);
 
 	// Show steering information on screen
 	if(lcdRefreshCount > 2) return;
@@ -597,8 +598,8 @@ void AcquireTapeFromWall()
 	Reset();
 	Print("Acquiring Tape");
 
-	int leftSpeed = diffDownSpeed.Value() * strafeDirection;
-	int rightSpeed = diffDownSpeed.Value() * strafeDirection;
+	int leftSpeed = 900 * strafeDirection;
+	int rightSpeed = 900 * strafeDirection;
 	unsigned long turnTime = millis();
 
 	SetServo(LEFT_SERVO, 180 - servoDiffAngle.Value());
@@ -802,33 +803,22 @@ void AcquireWallFromCollect()
 
 	SquareTouch(diffUpSpeed.Value());
 
-	// Disengage motors
+	// Disengage motors, set servos
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
+	SetServo(LEFT_SERVO, leftAngle);
+	SetServo(RIGHT_SERVO, rightAngle);
+
 	Reset(); Print("Motors killed");
 	delay(1000); // ARBITRARY
 }
 
-/*void AcquireWallFromTape() 
+void BeginningMovement()
 {
-	Reset(); 
-	Print("Tape ended,"); LCD.setCursor(0,1);
-	Print("Finding Wall...");
-	SquareTouch(diffUpSpeed.Value());
+	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * diffDownSpeed.Value());
+	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * diffDownSpeed.Value());
+	delay(500);
 
-	if(strafeDirection == LEFT_DIRECTION)
-	{
-		leftAngle = 180 - servoBikeAngle.Value() - servoWallFrontAngle.Value();
-		rightAngle = servoBikeAngle.Value() - servoWallRearAngle.Value();
-	}
-	else // strafeDirection == RIGHT_DIRECTION
-	{
-		leftAngle = 180 - servoBikeAngle.Value() + servoWallRearAngle.Value();
-		rightAngle = servoBikeAngle.Value() + servoWallFrontAngle.Value();
-	}
-
-	SetServo(LEFT_SERVO, leftAngle);
-	SetServo(RIGHT_SERVO, rightAngle);
-
-	delay(SERVO_TRANSFORM_DELAY);
-}*/
+	AcquireTapeFromWall();
+	maneuverState = TAPE_FOLLOW_DOWN_STATE;
+}
