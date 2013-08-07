@@ -29,6 +29,8 @@
 #define SERVO_DIFF_ANGLE 15
 #define SERVO_WALL_REAR_ANGLE 16
 #define SERVO_WALL_FRONT_ANGLE 17
+// Ebay wait
+#define EBAY_WAIT 19
 
 // PIN DECLARATIONS
 // Servo indices
@@ -95,6 +97,7 @@
 #define FOLLOW_DOWN_DIRECTION 0
 #define FOLLOW_UP_DIRECTION 1
 
+
 // VARIABLES
 // State tracking
 int maneuverState = MENU_STATE; // Changing this will change the robot's inital state (menu is default)
@@ -148,6 +151,8 @@ MenuItem servoLoadAngle = MenuItem("Load ang", SERVO_LOAD_ANGLE);
 MenuItem servoCollectAngle = MenuItem("Col ang", SERVO_COLLECT_ANGLE);
 MenuItem servoWallRearAngle = MenuItem("Rear ang", SERVO_WALL_REAR_ANGLE);
 MenuItem servoWallFrontAngle = MenuItem("Front ang", SERVO_WALL_FRONT_ANGLE);
+// Ebay wait
+MenuItem ebayWait = MenuItem("Ebay wait", EBAY_WAIT);
 
 // Load menu items into an array
 MenuItem items[] = 
@@ -155,9 +160,9 @@ MenuItem items[] =
 	targetThreshold, homeBeaconThreshold, ballCollectThreshold, breakBeamThreshold,
 	qrdProportionalGain, qrdDerivativeGain, rightStrafeGain,
 	brushSpeed, firingSpeed, bikeSpeed, diffUpSpeed, diffDownSpeed, 
-	servoLoadAngle, servoCollectAngle, servoWallRearAngle, servoWallFrontAngle
+	servoLoadAngle, servoCollectAngle, servoWallRearAngle, servoWallFrontAngle, ebayWait
 };
-const int itemCount = 16; // must equal menu item array size
+const int itemCount = 17; // must equal menu item array size
 
 const int lcdRefreshPeriod = 30; // Update LCD screen every n iterations. Larger = fewer updates. Smaller = flicker
 unsigned int lcdRefreshCount = 0; // Current iteration. Do not change this value
@@ -819,4 +824,32 @@ void BeginningMovement()
 
 	AcquireTapeFromWall();
 	maneuverState = TAPE_FOLLOW_DOWN_STATE;
+}
+
+void EbayWait()
+{
+	Reset();
+	Print("Entering");
+	LCD.setCursor(0,1);
+	Print("eBay wait");
+	delay(300); 
+	Reset();
+
+	unsigned long startTime = millis();
+	while (millis() < startTime + (int)((float)ebayTime.Value() * 100.0))
+	{
+		Reset(); Print("Time left"); LCD.setCursor(0,1);
+		int currentTimeSeconds = (float)millis() / 1000.0;
+ 		int finishTimeSeconds = (((float)ebayTime.Value() * 100.0) + (float)startTime) / 1000.0;
+
+		int difference = (startTime + (int)( ((float)ebayTime.Value() * 100.0) - millis()) ) ;
+		Print(difference);
+	}
+
+	Reset();
+	Print("eBay wait");
+	LCD.setCursor(0,1);
+	Print("complete");
+	delay(300); 
+	Reset();
 }
