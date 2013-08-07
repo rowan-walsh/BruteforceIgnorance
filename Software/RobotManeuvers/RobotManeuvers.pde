@@ -520,7 +520,7 @@ void Strafe()
 	{
 		leftAngle = 180 - BIKE_ANGLE_CONSTANT + servoWallRearAngle.Value();
 		rightAngle = BIKE_ANGLE_CONSTANT + servoWallFrontAngle.Value();
-		motorSpeed = strafeDirection * bikeSpeed.Value() * rightStrafeGain.Value() / 1000;
+		motorSpeed = (int)((float)strafeDirection * (float)bikeSpeed.Value() * (float)rightStrafeGain.Value() / 1000.0);
 	}
 
 	SetServo(LEFT_SERVO, leftAngle);
