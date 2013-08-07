@@ -78,7 +78,7 @@
 #define COLLECTION_DELAY 1000			// Good
 #define COLLECTION_REVERSE_DELAY 500	// Good
 #define BRUSH_LOAD_TIMEOUT_DELAY 4000  	// Experimental
-#define ACQUIRE_TAPE_TURN_DELAY 500		// Experimental
+#define ACQUIRE_TAPE_TURN_DELAY 750		// Experimental
 
 // LOOPING MANEUVER STATES
 #define MENU_STATE 0
@@ -597,9 +597,12 @@ void AcquireTapeFromWall()
 	Reset();
 	Print("Acquiring Tape");
 
-	int leftSpeed = LEFT_DIFF_MULT * diffDownSpeed.Value();
-	int rightSpeed = RIGHT_DIFF_MULT * diffDownSpeed.Value();
+	int leftSpeed = diffDownSpeed.Value() * strafeDirection;
+	int rightSpeed = diffDownSpeed.Value() * strafeDirection;
 	unsigned long turnTime = millis();
+
+	SetServo(LEFT_SERVO, 180 - servoDiffAngle.Value());
+	SetServo(RIGHT_SERVO, servoDiffAngle.Value());
 
 	do
 	{
@@ -611,14 +614,18 @@ void AcquireTapeFromWall()
 		qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
 
 		// Reverses turn direction if a delay has passed
-		if(ACQUIRE_TAPE_TURN_DELAY < millis() - turnTime)
+		if(ACQUIRE_TAPE_TURN_DELAY <= millis() - turnTime)
 		{
 			leftSpeed *= -1;
 			rightSpeed *= -1;
-			turnTime = millis();
+			turnTime = millis(); // Restarts timer
+
+			delay(250);
 		}
 
-		if (StopButton(100)) return; // escape condition
+		if(StopButton(100)) return; // escape condition
+
+		delay(50);
 	}
 	while(!qrdInnerLeft && !qrdInnerRight);
 
@@ -770,7 +777,7 @@ void AcquireWallFromCollect()
 	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * DIFF_REVERSE * diffUpSpeed.Value());
 	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * DIFF_REVERSE * diffUpSpeed.Value());
 	Reset(); Print("Backing up");
-	delay(4 * COLLECTION_REVERSE_DELAY);
+	delay(3 * COLLECTION_REVERSE_DELAY);
 
 	// Stop Motors
 	motor.stop(LEFT_MOTOR_PIN);
@@ -781,8 +788,8 @@ void AcquireWallFromCollect()
 	Reset(); Print("Turning");
 //	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * 1.5 * diffUpSpeed.Value());
 //	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * 1.5 * -diffUpSpeed.Value());
-	motor.speed(LEFT_MOTOR_PIN, -800);
-	motor.speed(RIGHT_MOTOR_PIN, -800);
+	motor.speed(LEFT_MOTOR_PIN, -900);
+	motor.speed(RIGHT_MOTOR_PIN, -900);
 	do
 	{
 		if(StopButton(100)) return; // Escape condition
