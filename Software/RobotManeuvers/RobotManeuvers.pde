@@ -31,6 +31,7 @@
 #define SERVO_WALL_FRONT_ANGLE 17
 // Ebay wait
 #define EBAY_WAIT 19
+#define 180_TURN_DELAY 20
 
 // PIN DECLARATIONS
 // Servo indices
@@ -153,6 +154,7 @@ MenuItem servoWallRearAngle = MenuItem("Rear ang", SERVO_WALL_REAR_ANGLE);
 MenuItem servoWallFrontAngle = MenuItem("Front ang", SERVO_WALL_FRONT_ANGLE);
 // Ebay wait
 MenuItem ebayWait = MenuItem("Ebay wait", EBAY_WAIT);
+MenuItem delay180 = MenuItem("180 delay", 180_TURN_DELAY);
 
 // Load menu items into an array
 MenuItem items[] = 
@@ -160,9 +162,10 @@ MenuItem items[] =
 	targetThreshold, homeBeaconThreshold, ballCollectThreshold, breakBeamThreshold,
 	qrdProportionalGain, qrdDerivativeGain, rightStrafeGain,
 	brushSpeed, firingSpeed, bikeSpeed, diffUpSpeed, diffDownSpeed, 
-	servoLoadAngle, servoCollectAngle, servoWallRearAngle, servoWallFrontAngle, ebayWait
+	servoLoadAngle, servoCollectAngle, servoWallRearAngle, servoWallFrontAngle, 
+	ebayWait, delay180
 };
-const int itemCount = 17; // must equal menu item array size
+const int itemCount = 18; // must equal menu item array size
 
 const int lcdRefreshPeriod = 30; // Update LCD screen every n iterations. Larger = fewer updates. Smaller = flicker
 unsigned int lcdRefreshCount = 0; // Current iteration. Do not change this value
@@ -561,6 +564,12 @@ void Fire()
 	motor.stop(RIGHT_MOTOR_PIN);
 	motor.speed(SHOOTING_MOTOR_PIN, firingSpeed.Value());
 
+	SetServo(LEFT_SERVO, 180 - DIFF_ANGLE_CONSTANT);
+	SetServo(RIGHT_SERVO, DIFF_ANGLE_CONSTANT);
+	delay(SERVO_TRANSFORM_DELAY);
+
+	WallAlign();
+
 	// Load firing mechanism
 	LCD.setCursor(0,1);
 	Print("Loading ball");
@@ -577,6 +586,10 @@ void Fire()
 	delay(500); // Allow time for ball to shoot
 	motor.stop(SHOOTING_MOTOR_PIN);
 	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
+
+	SetServo(LEFT_SERVO, leftAngle);
+	SetServo(RIGHT_SERVO, rightAngle);
+
 	delay(REBOUND_DELAY);
 }
 
@@ -605,7 +618,7 @@ void MoveOffWall()
 	motor.speed(LEFT_MOTOR_PIN, diffDownSpeed.Value() * strafeDirection);
 	motor.speed(RIGHT_MOTOR_PIN, diffDownSpeed.Value() * strafeDirection);
 	Reset(); Print("180 deg turn");
-	delay(TURN_180_DEG_DELAY);
+	delay(2 * delay180.Value());
 }
 
 void AcquireTapeFromWall()
@@ -744,7 +757,29 @@ void SquareTouch(int baseSpeed)
 
 		if (StopButton(100)) return; // escape condition
 	}
-	while(!leftFront && !rightFront); // as long as BOTH switches are not triggered
+	while(!leftFront && !rightFront); // as long as neither switch is triggered
+}
+
+void WallAlign()
+{
+	int baseSpeed = 800;
+	unsigned int startTime = millis();
+
+	do
+	{
+		leftFront = Microswitch(LEFT_FRONT_MICROSWITCH_PIN);
+		rightFront = Microswitch(RIGHT_FRONT_MICROSWITCH_PIN);
+		
+		// Disengage motors when touching wall
+		int leftSpeed = leftFront ? 0 : LEFT_DIFF_MULT * baseSpeed; 
+		int rightSpeed = rightFront ? 0 : RIGHT_DIFF_MULT * baseSpeed;
+		motor.speed(LEFT_MOTOR_PIN, -leftSpeed);
+		motor.speed(RIGHT_MOTOR_PIN, -rightSpeed);
+
+		if (StopButton(100)) return; // escape condition
+	}
+	while((!leftFront || !rightFront) && (millis() - startTime < 500)); 
+	// as long as BOTH switches are not triggered 
 }
 
 void CollectionSensorUpdate() {
