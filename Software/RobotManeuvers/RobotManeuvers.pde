@@ -74,7 +74,7 @@
 #define WALL_FOLLOW_END_DELAY 1500		// Good
 #define SERVO_TRANSFORM_DELAY 1000		// Fairly arbitrary
 #define MOVE_OFF_WALL_DELAY 1000		// Arbitrary, probably too long
-#define TURN_135_DEG_DELAY 1000			// Arbitrary, untested
+#define TURN_180_DEG_DELAY 1000			// Arbitrary, untested
 #define COLLECTION_DELAY 1000			// Good
 #define COLLECTION_REVERSE_DELAY 500	// Good
 #define BRUSH_LOAD_TIMEOUT_DELAY 4000  	// Experimental
@@ -579,8 +579,8 @@ void MoveOffWall()
 	// Make a controlled turn
 	motor.speed(LEFT_MOTOR_PIN, diffDownSpeed.Value() * strafeDirection);
 	motor.speed(RIGHT_MOTOR_PIN, diffDownSpeed.Value() * strafeDirection);
-	Reset(); Print("135 deg turn");
-	delay(TURN_135_DEG_DELAY);
+	Reset(); Print("180 deg turn");
+	delay(TURN_180_DEG_DELAY);
 }
 
 void AcquireTapeFromWall()
@@ -588,17 +588,57 @@ void AcquireTapeFromWall()
 	Reset();
 	Print("Acquiring Tape");
 	MoveOffWall();
-	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * diffDownSpeed.Value());
-	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * diffDownSpeed.Value());
-	
+
+	int leftSpeed = LEFT_DIFF_MULT * diffDownSpeed.Value();
+	int rightSpeed = RIGHT_DIFF_MULT * diffDownSpeed.Value();
+	unsigned long turnTime = millis();
+
 	do
 	{
+		// Set motor speed, check QRD's
+		motor.speed(LEFT_MOTOR_PIN, leftSpeed);
+		motor.speed(RIGHT_MOTOR_PIN, rightSpeed);
+
 		qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
 		qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
+
+		// Reverses turn direction if a delay has passed
+		if(ACQUIRE_TAPE_TURN_DELAY < millis() - turnTime)
+		{
+			leftSpeed *= -1;
+			rightSpeed *= -1;
+			turnTime = millis();
+		}
+
 		if (StopButton(100)) return; // escape condition
 	}
 	while(!qrdInnerLeft && !qrdInnerRight);
+
+	motor.stop(LEFT_MOTOR_PIN);
+	motor.stop(RIGHT_MOTOR_PIN);
 }
+
+void FollowTapeSensorUpdate(int followDirection) // Update - Following tape
+{
+	// Check if end has been found
+	if(followDirection == FOLLOW_UP_DIRECTION)
+	{
+		qrdOuterLeft = QRD(OUTER_LEFT_QRD_PIN);
+		qrdOuterRight = QRD(OUTER_RIGHT_QRD_PIN);
+		endFound = (qrdOuterLeft || qrdOuterRight);
+	}
+	else if(followDirection == FOLLOW_DOWN_DIRECTION)
+	{
+		leftFront = Microswitch(LEFT_FRONT_MICROSWITCH_PIN);
+		rightFront = Microswitch(RIGHT_FRONT_MICROSWITCH_PIN);
+		endFound = (leftFront || rightFront);
+	}
+
+	if(endFound) return; // Only check line-following stuff if not at the end
+	qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
+	qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
+}
+
 
 void FollowTapeSensorUpdate(int followDirection) // Update - Following tape
 {
