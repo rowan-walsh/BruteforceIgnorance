@@ -790,6 +790,7 @@ void BumpCollect()
 void AcquireWallFromCollect() 
 {
 	// Back up a certain distance
+	motor.stop(BRUSH_MOTOR_PIN);
 	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * DIFF_REVERSE * 900);
 	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * DIFF_REVERSE * 900);
 	Reset(); Print("Backing up");
@@ -812,6 +813,7 @@ void AcquireWallFromCollect()
 	}
 	while(!HomeBeaconAcquired(5));
 
+	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
 	delay(500);
@@ -840,7 +842,11 @@ void BeginningMovement()
 	motor.speed(RIGHT_MOTOR_PIN, -1 * RIGHT_DIFF_MULT * (diffDownSpeed.Value() + 200));
 	delay(600);
 
-	//AcquireTapeFromWall();
+	motor.stop(LEFT_MOTOR_PIN);
+	motor.stop(RIGHT_MOTOR_PIN);
+	delay(250);
+
+	AcquireTapeFromWall();
 	maneuverState = TAPE_FOLLOW_DOWN_STATE;
 }
 
