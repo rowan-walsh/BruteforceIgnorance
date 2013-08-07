@@ -432,12 +432,15 @@ void WallFollowSensorUpdate()
 
 void SwitchWallFollowDirection()
 {
-	passedHomeBeacon = false; // Haven't seen home beacon since direction is reset
 	strafeDirection *= -1; // Reverse strafing direction
 	
-	motor.speed(LEFT_MOTOR_PIN, -1 * motorSpeed);
-	motor.speed(RIGHT_MOTOR_PIN, -1 * motorSpeed);
-	delay(200);
+	//if(!passedHomeBeacon)
+	//{
+	//passedHomeBeacon = false; // Haven't seen home beacon since direction is reset
+	//motor.speed(LEFT_MOTOR_PIN, -1 * motorSpeed);
+	//motor.speed(RIGHT_MOTOR_PIN, -1 * motorSpeed);
+	//delay(250);
+	//}
 
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
@@ -467,7 +470,7 @@ void WallFollow()
 	// End the wall following maneuver
 	if(leavingWall)
 	{
-		if (passedHomeBeacon) SwitchWallFollowDirection();
+		if(passedHomeBeacon) SwitchWallFollowDirection();
 		passedHomeBeacon = false; // Not strictly necessary but could prevent bugs later
 		leavingWall = false;
 		Reset();
@@ -809,6 +812,11 @@ void AcquireWallFromCollect()
 	motor.stop(RIGHT_MOTOR_PIN);
 	delay(500);
 
+	// Accelerate
+	motor.speed(LEFT_MOTOR_PIN, -1 * LEFT_DIFF_MULT * (diffUpSpeed.Value() + 200));
+	motor.speed(RIGHT_MOTOR_PIN, -1 * RIGHT_DIFF_MULT * (diffUpSpeed.Value() + 200));
+	delay(500);
+
 	SquareTouch(diffUpSpeed.Value());
 
 	// Disengage motors, set servos
@@ -824,16 +832,18 @@ void AcquireWallFromCollect()
 
 void BeginningMovement()
 {
-	motor.speed(LEFT_MOTOR_PIN, -1 * LEFT_DIFF_MULT * diffDownSpeed.Value());
-	motor.speed(RIGHT_MOTOR_PIN, -1 * RIGHT_DIFF_MULT * diffDownSpeed.Value());
+	motor.speed(LEFT_MOTOR_PIN, -1 * LEFT_DIFF_MULT * (diffDownSpeed.Value() + 200));
+	motor.speed(RIGHT_MOTOR_PIN, -1 * RIGHT_DIFF_MULT * (diffDownSpeed.Value() + 200));
 	delay(600);
 
-	AcquireTapeFromWall();
+	//AcquireTapeFromWall();
 	maneuverState = TAPE_FOLLOW_DOWN_STATE;
 }
 
 void EbayWait()
 {
+	if(ebayWait.Value() == 0) return;
+
 	Reset();
 	Print("Entering");
 	LCD.setCursor(0,1);
