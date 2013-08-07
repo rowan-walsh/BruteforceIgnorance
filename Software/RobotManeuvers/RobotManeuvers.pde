@@ -837,10 +837,10 @@ void EbayWait()
 	Reset();
 
 	unsigned long startTime = millis();
-	while (millis() < startTime + (int)((float)ebayTime.Value() * 100.0))
+	while (millis() < startTime + (int)((float)ebayWait.Value() * 100.0))
 	{
 		Reset(); Print("Time left"); LCD.setCursor(0,1);
-		Print(startTime + (int)((float)ebayTime.Value() * 100.0) - millis());
+		Print(startTime + (int)((float)ebayWait.Value() * 100.0) - millis());
 
 		if (StopButton(100))
 		{
