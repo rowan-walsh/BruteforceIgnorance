@@ -450,7 +450,7 @@ void WallFollow()
 	SetServo(BALL_SERVO, servoCollectAngle.Value());
 
 	// End the wall following maneuver
-	if(leavingWall)
+	/*if(leavingWall)
 	{
 		if (passedHomeBeacon) SwitchWallFollowDirection();
 		passedHomeBeacon = false; // Not strictly necessary but could prevent bugs later
@@ -469,25 +469,23 @@ void WallFollow()
 		maneuverState = TAPE_FOLLOW_DOWN_STATE;
 		leavingWall = false;
 		return;
-	}
+	}*/
 
 	if(TargetAcquired())
 	{
 		if(Armed()) Fire();
-		if (BreakBeam())
+		else if (BreakBeam())
 		{
 			motor.stop(LEFT_MOTOR_PIN);
 			motor.stop(RIGHT_MOTOR_PIN);
-			unsigned long startTime = millis();
-			while (!Armed() && (millis() < startTime + BRUSH_LOAD_TIMEOUT_DELAY))
+			// unsigned long startTime = millis();
+			LCD.setCursor(0,1);
+			Print("Cycling");
+			while (!Armed() /*&& (millis() < startTime + BRUSH_LOAD_TIMEOUT_DELAY)*/)
 			{	
-				LCD.setCursor(0,1);
-				Print("Cycling");
-				delay(100);
 				if (StopButton(100)) return; // escape condition
 			}
-			if (Armed()) Fire();
-			Reset();
+			Fire();
 		}
 		lcdRefreshCount = 1;
 	}
