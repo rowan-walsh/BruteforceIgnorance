@@ -15,6 +15,7 @@
 // Gain parameters
 #define QRD_P_GAIN 6
 #define QRD_D_GAIN 7
+#define LEFT_STRAFE_GAIN 18
 // Motor speeds
 #define BRUSH_SPEED 8
 #define FIRING_SPEED 9
@@ -129,6 +130,7 @@ MenuItem breakBeamThreshold = MenuItem("BB TH", BREAK_BEAM_THRESHOLD);
 // QRD gains
 MenuItem qrdProportionalGain = MenuItem("Q P-Gain", QRD_P_GAIN);
 MenuItem qrdDerivativeGain = MenuItem("Q D-Gain", QRD_D_GAIN);
+MenuItem leftStrafeGain = MenuItem("L S-Gain", LEFT_STRAFE_GAIN);
 // Motor speeds
 MenuItem brushSpeed = MenuItem("Brush Vel", BRUSH_SPEED);
 MenuItem firingSpeed = MenuItem("Fire Vel", FIRING_SPEED);
@@ -497,7 +499,7 @@ void Strafe()
 {
 	// Engage collection, set strafing speeds
 	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
-	motor.speed(LEFT_MOTOR_PIN, strafeDirection * bikeSpeed.Value());
+	motor.speed(LEFT_MOTOR_PIN, strafeDirection * bikeSpeed.Value() * (leftStrafeGain.Value() / 1000));
 	motor.speed(RIGHT_MOTOR_PIN, strafeDirection * bikeSpeed.Value());
 
 	if(strafeDirection == LEFT_DIRECTION)
