@@ -437,7 +437,7 @@ void SwitchWallFollowDirection()
 	
 	motor.speed(LEFT_MOTOR_PIN, -1 * motorSpeed);
 	motor.speed(RIGHT_MOTOR_PIN, -1 * motorSpeed);
-	delay(500);
+	delay(200);
 
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
