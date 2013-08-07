@@ -474,6 +474,8 @@ void WallFollow()
 		if(Armed()) Fire();
 		else if (BreakBeam())
 		{
+			motor.stop(LEFT_MOTOR_PIN);
+			motor.stop(RIGHT_MOTOR_PIN);
 			unsigned long startTime = millis();
 			while (!Armed() && (millis() < startTime + BRUSH_LOAD_TIMEOUT_DELAY))
 			{	
@@ -482,7 +484,8 @@ void WallFollow()
 				delay(100);
 				if (StopButton(100)) return; // escape condition
 			}
-			if (Armed()) Fire;
+			if (Armed()) Fire();
+			Reset();
 		}
 		lcdRefreshCount = 1;
 	}
