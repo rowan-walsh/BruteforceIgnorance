@@ -87,6 +87,7 @@
 #define COLLECTION_STATE 3
 #define TAPE_FOLLOW_UP_STATE 4
 #define SECRET_LEVEL_STATE 5
+#define BEGINNING_STATE 6
 // Loop behaviour switches
 #define FOLLOW_DOWN_DIRECTION 0
 #define FOLLOW_UP_DIRECTION 1
@@ -154,7 +155,7 @@ MenuItem items[] =
 	brushSpeed, firingSpeed, bikeSpeed, diffUpSpeed, diffDownSpeed, 
 	servoLoadAngle, servoCollectAngle, servoBikeAngle, servoDiffAngle, servoWallRearAngle, servoWallFrontAngle
 };
-const int itemCount = 17; // must equal menu item array size
+const int itemCount = 18; // must equal menu item array size
 
 const int lcdRefreshPeriod = 30; // Update LCD screen every n iterations. Larger = fewer updates. Smaller = flicker
 unsigned int lcdRefreshCount = 0; // Current iteration. Do not change this value
@@ -177,27 +178,31 @@ void loop()
 	switch(maneuverState)
 	{
 		case MENU_STATE:
-		ProcessMenu();
+			ProcessMenu();
 		break;
 		case WALL_FOLLOWING_STATE:
-		WallFollow();
+			WallFollow();
 		break;
 		case TAPE_FOLLOW_DOWN_STATE:
-		FollowTape(FOLLOW_DOWN_DIRECTION);
+			FollowTape(FOLLOW_DOWN_DIRECTION);
 		break;
 		case COLLECTION_STATE:
-		Collection();
+			Collection();
 		break;
-	//	case TAPE_FOLLOW_UP_STATE:
-	//	FollowTape(FOLLOW_UP_DIRECTION);
-		break;
+		//	case TAPE_FOLLOW_UP_STATE:
+		//	FollowTape(FOLLOW_UP_DIRECTION);
+		//	break;
 		case SECRET_LEVEL_STATE:
-		SecretFiringLevel();
+			SecretFiringLevel();
+		break;
+		case BEGINNING_STATE:
+			AcquireTapeFromWall();
+			maneuverState = TAPE_FOLLOW_DOWN_STATE;
 		break;
 		default:
-		Reset();
-		Print("Error: no state"); LCD.setCursor(0,1);
-		Print("???");
+			Reset();
+			Print("Error: no state"); LCD.setCursor(0,1);
+			Print("???");
 		break;
 	}
 }
@@ -353,7 +358,7 @@ void ProcessMenu()
 	}
 	else if(selectedItem == itemCount + 1)
 	{
-		int selectedState = knobValue / 205 + 1;	// Allow user to select states 1-5 (not zero)
+		int selectedState = knobValue / 171 + 1;	// Allow user to select states 1-5 (not zero)
 		Print("Current state: ", lastState); LCD.setCursor(0,1); 
 		Print("Set to ", selectedState); Print(" ?");
 		if(StopButton()) lastState = selectedState;
@@ -468,6 +473,7 @@ void WallFollow()
 		}
 		Reset();
 		Print("Found 10k bacon");
+		MoveOffWall();
 		AcquireTapeFromWall();
 		maneuverState = TAPE_FOLLOW_DOWN_STATE;
 		leavingWall = false;
@@ -590,7 +596,6 @@ void AcquireTapeFromWall()
 {
 	Reset();
 	Print("Acquiring Tape");
-	MoveOffWall();
 
 	int leftSpeed = LEFT_DIFF_MULT * diffDownSpeed.Value();
 	int rightSpeed = RIGHT_DIFF_MULT * diffDownSpeed.Value();
