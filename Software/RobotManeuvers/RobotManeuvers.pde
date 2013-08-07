@@ -465,13 +465,14 @@ void WallFollow()
 	{
 		if (passedHomeBeacon) SwitchWallFollowDirection();
 		passedHomeBeacon = false; // Not strictly necessary but could prevent bugs later
+		leavingWall = false;
 		Reset();
 		Print("Finding 10K IR");
 		while (!HomeBeaconAcquired())
 		{
 			Strafe();
 			WallFollowSensorUpdate();
-			if (!leavingWall) return;
+			//if (!leavingWall) return;
 			if (StopButton(100)) return; // escape condition
 		}
 		Reset();
@@ -479,7 +480,7 @@ void WallFollow()
 		MoveOffWall();
 		AcquireTapeFromWall();
 		maneuverState = TAPE_FOLLOW_DOWN_STATE;
-		leavingWall = false;
+		//leavingWall = false;
 		return;
 	}
 
