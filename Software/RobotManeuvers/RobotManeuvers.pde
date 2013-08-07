@@ -813,7 +813,8 @@ void AcquireWallFromCollect()
 	SetServo(RIGHT_SERVO, rightAngle);
 
 	Reset(); Print("Motors killed");
-	delay(1000); // ARBITRARY
+	delay(1000);
+	EbayWait();
 }
 
 void BeginningMovement()
@@ -839,11 +840,18 @@ void EbayWait()
 	while (millis() < startTime + (int)((float)ebayTime.Value() * 100.0))
 	{
 		Reset(); Print("Time left"); LCD.setCursor(0,1);
-		int currentTimeSeconds = (float)millis() / 1000.0;
- 		int finishTimeSeconds = (((float)ebayTime.Value() * 100.0) + (float)startTime) / 1000.0;
+		Print(startTime + (int)((float)ebayTime.Value() * 100.0) - millis());
 
-		int difference = (startTime + (int)( ((float)ebayTime.Value() * 100.0) - millis()) ) ;
-		Print(difference);
+		if (StopButton(100))
+		{
+			Reset();
+			Print("eBay wait");
+			LCD.setCursor(0,1);
+			Print("cancelled");
+			delay(500);
+			Reset();
+			return;
+		}
 	}
 
 	Reset();
