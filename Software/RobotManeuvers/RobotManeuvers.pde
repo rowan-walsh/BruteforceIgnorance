@@ -435,6 +435,10 @@ void SwitchWallFollowDirection()
 	passedHomeBeacon = false; // Haven't seen home beacon since direction is reset
 	strafeDirection *= -1; // Reverse strafing direction
 	
+	motor.speed(LEFT_MOTOR_PIN, -1 * motorSpeed);
+	motor.speed(RIGHT_MOTOR_PIN, -1 * motorSpeed);
+	delay(500);
+
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
 	delay(1000); // can lower later
@@ -778,7 +782,7 @@ void BumpCollect()
 
 void AcquireWallFromCollect() 
 {
-	// Back up a certain distanced
+	// Back up a certain distance
 	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * DIFF_REVERSE * diffUpSpeed.Value());
 	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * DIFF_REVERSE * diffUpSpeed.Value());
 	Reset(); Print("Backing up");
@@ -820,9 +824,9 @@ void AcquireWallFromCollect()
 
 void BeginningMovement()
 {
-	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * diffDownSpeed.Value());
-	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * diffDownSpeed.Value());
-	delay(500);
+	motor.speed(LEFT_MOTOR_PIN, -1 * LEFT_DIFF_MULT * diffDownSpeed.Value());
+	motor.speed(RIGHT_MOTOR_PIN, -1 * RIGHT_DIFF_MULT * diffDownSpeed.Value());
+	delay(600);
 
 	AcquireTapeFromWall();
 	maneuverState = TAPE_FOLLOW_DOWN_STATE;
