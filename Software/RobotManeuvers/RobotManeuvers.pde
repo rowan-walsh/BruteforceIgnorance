@@ -78,6 +78,7 @@
 #define COLLECTION_DELAY 1000			// Good
 #define COLLECTION_REVERSE_DELAY 500	// Good
 #define BRUSH_LOAD_TIMEOUT_DELAY 4000  	// Experimental
+#define ACQUIRE_TAPE_TURN_DELAY 500		// Experimental
 
 // LOOPING MANEUVER STATES
 #define MENU_STATE 0
@@ -619,28 +620,6 @@ void AcquireTapeFromWall()
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
 }
-
-void FollowTapeSensorUpdate(int followDirection) // Update - Following tape
-{
-	// Check if end has been found
-	if(followDirection == FOLLOW_UP_DIRECTION)
-	{
-		qrdOuterLeft = QRD(OUTER_LEFT_QRD_PIN);
-		qrdOuterRight = QRD(OUTER_RIGHT_QRD_PIN);
-		endFound = (qrdOuterLeft || qrdOuterRight);
-	}
-	else if(followDirection == FOLLOW_DOWN_DIRECTION)
-	{
-		leftFront = Microswitch(LEFT_FRONT_MICROSWITCH_PIN);
-		rightFront = Microswitch(RIGHT_FRONT_MICROSWITCH_PIN);
-		endFound = (leftFront || rightFront);
-	}
-
-	if(endFound) return; // Only check line-following stuff if not at the end
-	qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
-	qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
-}
-
 
 void FollowTapeSensorUpdate(int followDirection) // Update - Following tape
 {
