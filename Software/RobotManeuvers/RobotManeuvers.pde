@@ -292,9 +292,9 @@ bool Armed(int debounceTime = 15)
 // Returns a bool indicating whether the laser break beam has been triggered
 bool BreakBeam(int debounceTime = 15)
 {
-	if(analogRead(BREAK_BEAM_SENSOR_PIN) >= breakBeamThreshold.Value()) return false;
+	if(analogRead(BREAK_BEAM_SENSOR_PIN) < breakBeamThreshold.Value()) return false;
 	delay(debounceTime);
-	return (analogRead(BREAK_BEAM_SENSOR_PIN) <= breakBeamThreshold.Value());
+	return (analogRead(BREAK_BEAM_SENSOR_PIN) >= breakBeamThreshold.Value());
 }
 
 // Returns a bool indicating whether a target is detected
@@ -454,15 +454,17 @@ void WallFollow()
 	{
 		if (passedHomeBeacon) SwitchWallFollowDirection();
 		passedHomeBeacon = false; // Not strictly necessary but could prevent bugs later
+		Reset();
+		Print("Finding 10K IR");
 		while (!HomeBeaconAcquired())
 		{
 			Strafe();
 			WallFollowSensorUpdate();
-			Reset();
-			Print("Finding 10K IR");
 			if (!leavingWall) return;
 			if (StopButton(100)) return; // escape condition
 		}
+		Reset();
+		Print("Found 10k bacon");
 		AcquireTapeFromWall();
 		maneuverState = TAPE_FOLLOW_DOWN_STATE;
 		leavingWall = false;
@@ -472,7 +474,7 @@ void WallFollow()
 	if(TargetAcquired())
 	{
 		if(Armed()) Fire();
-		else if (BreakBeam())
+		if (BreakBeam())
 		{
 			motor.stop(LEFT_MOTOR_PIN);
 			motor.stop(RIGHT_MOTOR_PIN);
