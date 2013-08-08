@@ -31,7 +31,9 @@
 #define SERVO_WALL_FRONT_ANGLE 17
 // Ebay wait
 #define EBAY_WAIT 19
-#define 180_TURN_DELAY 20
+#define TURN_180_DELAY 20
+#define LEFT_MOTOR_SPEED 21
+#define RIGHT_MOTOR_SPEED 22
 
 // PIN DECLARATIONS
 // LED Pins
@@ -102,7 +104,6 @@
 #define FOLLOW_DOWN_DIRECTION 0
 #define FOLLOW_UP_DIRECTION 1
 
-
 // VARIABLES
 // State tracking
 int maneuverState = MENU_STATE; // Changing this will change the robot's inital state (menu is default)
@@ -158,7 +159,10 @@ MenuItem servoWallRearAngle = MenuItem("Rear ang", SERVO_WALL_REAR_ANGLE);
 MenuItem servoWallFrontAngle = MenuItem("Front ang", SERVO_WALL_FRONT_ANGLE);
 // Ebay wait
 MenuItem ebayWait = MenuItem("Ebay wait", EBAY_WAIT);
-MenuItem delay180 = MenuItem("180 delay", 180_TURN_DELAY);
+MenuItem delay180 = MenuItem("180 delay", TURN_180_DELAY);
+MenuItem leftMotorSpeed = MenuItem("LEFT", LEFT_MOTOR_SPEED);
+MenuItem rightMotorSpeed = MenuItem("RIGHT", RIGHT_MOTOR_SPEED);
+
 
 // Load menu items into an array
 MenuItem items[] = 
@@ -167,9 +171,10 @@ MenuItem items[] =
 	qrdProportionalGain, qrdDerivativeGain, rightStrafeGain,
 	brushSpeed, firingSpeed, bikeSpeed, diffUpSpeed, diffDownSpeed, 
 	servoLoadAngle, servoCollectAngle, servoWallRearAngle, servoWallFrontAngle, 
+	leftMotorSpeed, rightMotorSpeed,
 	ebayWait, delay180
 };
-const int itemCount = 18; // must equal menu item array size
+const int itemCount = 20; // must equal menu item array size
 
 const int lcdRefreshPeriod = 30; // Update LCD screen every n iterations. Larger = fewer updates. Smaller = flicker
 unsigned int lcdRefreshCount = 0; // Current iteration. Do not change this value
@@ -491,7 +496,6 @@ void SwitchWallFollowDirection()
 
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
-	delay(1000); // can lower later
 
 	if (strafeDirection == LEFT_DIRECTION)
 	{
@@ -663,50 +667,19 @@ void MoveOffWall()
 	Reset(); Print("Backing up");
 	delay(MOVE_OFF_WALL_DELAY);
 
-	// Make a controlled turn
+/*	// Make a controlled turn
 	motor.speed(LEFT_MOTOR_PIN, diffDownSpeed.Value() * strafeDirection);
 	motor.speed(RIGHT_MOTOR_PIN, diffDownSpeed.Value() * strafeDirection);
 	Reset(); Print("180 deg turn");
-	delay(2 * delay180.Value());
+	delay(3 * delay180.Value());*/
 }
 
 void AcquireTapeFromWall()
 {
-	Reset();
-	Print("Acquiring Tape");
 
-	int leftSpeed = 900 * strafeDirection;
-	int rightSpeed = 900 * strafeDirection;
-	unsigned long turnTime = millis();
-
-	SetServo(LEFT_SERVO, 180 - DIFF_ANGLE_CONSTANT);
-	SetServo(RIGHT_SERVO, DIFF_ANGLE_CONSTANT);
-
-	do
-	{
-		// Set motor speed, check QRD's
-		motor.speed(LEFT_MOTOR_PIN, leftSpeed);
-		motor.speed(RIGHT_MOTOR_PIN, rightSpeed);
-
-		qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
-		qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
-
-		// Reverses turn direction if a delay has passed
-		if(ACQUIRE_TAPE_TURN_DELAY <= millis() - turnTime)
-		{
-			leftSpeed *= -1;
-			rightSpeed *= -1;
-			turnTime = millis(); // Restarts timer
-
-			delay(250);
-		}
-
-		if(StopButton(100)) return; // escape condition
-
-		delay(50);
-	}
-	while(!qrdInnerLeft && !qrdInnerRight);
-
+	//FollowIR(diffDownSpeed.Value());
+	DoubleQRDFind();
+	
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
 }
@@ -731,10 +704,10 @@ void FollowTapeSensorUpdate(int followDirection) // Update - Following tape
 	qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
 	qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
 }
-
+float derivative = 0;
 void FollowTape(int followDirection) // Looping maneuver
 {
-	FollowTapeSensorUpdate(followDirection);
+	/*FollowTapeSensorUpdate(followDirection);
 	SetServo(BALL_SERVO, servoCollectAngle.Value());
 	SetServo(LEFT_SERVO, 180 - DIFF_ANGLE_CONSTANT);
 	SetServo(RIGHT_SERVO, DIFF_ANGLE_CONSTANT);
@@ -744,7 +717,7 @@ void FollowTape(int followDirection) // Looping maneuver
 	// If the end has been found,
 	if(endFound && (followDirection == FOLLOW_DOWN_DIRECTION))
 	{
-		SquareTouch(diffDownSpeed.Value());					// square to collection wall
+		SquareTouch(800);					// square to collection wall
 		maneuverState = COLLECTION_STATE;					// begin collection maneuver
 		endFound = false;
 		return;
@@ -758,9 +731,13 @@ void FollowTape(int followDirection) // Looping maneuver
 
 	// Compute PID course correction
 	float proportional = qrdError * qrdProportionalGain.Value();
-	float derivative = (float)(qrdError - qrdPreviousError) / (float)qrdDeriveCounter * qrdDerivativeGain.Value();
-	float compensationSpeed = proportional + derivative;
 	
+	if (!((derivative > 250 && qrdError > 0) || (derivative < -250 && qrdError < 0)))
+		derivative += qrdError * qrdDerivativeGain.Value();
+
+	float compensationSpeed = proportional + derivative;
+	qrdPreviousError = qrdError;
+
 	if (qrdError >= 0) 
 	{
 		motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * (-baseSpeed - compensationSpeed));
@@ -769,30 +746,32 @@ void FollowTape(int followDirection) // Looping maneuver
 	else
 	{
 		motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * -baseSpeed);
-		motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * (-baseSpeed + compensationSpeed));
+		motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * (-baseSpeed - compensationSpeed));
 	}
-
-	// Keep track of differential gain
-	if(qrdPreviousError != qrdError)
-	{
-		qrdPreviousError = qrdError;
-		qrdDeriveCounter = 1;
-	}
-	else qrdDeriveCounter++;
 
 	// Show steering information on screen
 	if(lcdRefreshCount > 2) return;
 	Reset();
 	Print("Steering: ", compensationSpeed);
 	LCD.setCursor(0, 1);
-	Print("Error: ", qrdError);
+	Print("Error: ", qrdError);*/
+	while(!Microswitch(LEFT_FRONT_MICROSWITCH_PIN) && !Microswitch(RIGHT_FRONT_MICROSWITCH_PIN))
+	{
+		if (StopButton(100)) return;
+		motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * -leftMotorSpeed.Value());
+		motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * -rightMotorSpeed.Value());
+	}
+	motor.stop(LEFT_MOTOR_PIN);
+	motor.stop(RIGHT_MOTOR_PIN);
 }
 
 void SquareTouch(int baseSpeed)
 {
 	Reset(); Print("Square touch");
 	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value()); // Engage collection
-	
+	int dampedSpeed = baseSpeed - 50;
+
+	unsigned int startTime = millis();
 	do
 	{
 		leftFront = Microswitch(LEFT_FRONT_MICROSWITCH_PIN);
@@ -804,6 +783,7 @@ void SquareTouch(int baseSpeed)
 		motor.speed(LEFT_MOTOR_PIN, -leftSpeed);
 		motor.speed(RIGHT_MOTOR_PIN, -rightSpeed);
 
+	//	if (millis() > startTime + 2000) baseSpeed = dampedSpeed;
 		if (StopButton(100)) return; // escape condition
 	}
 	while(!leftFront && !rightFront); // as long as neither switch is triggered
@@ -829,6 +809,8 @@ void WallAlign()
 	}
 	while((!leftFront || !rightFront) && (millis() - startTime < 500)); 
 	// as long as BOTH switches are not triggered 
+	motor.stop(LEFT_MOTOR_PIN);
+	motor.stop(RIGHT_MOTOR_PIN);
 }
 
 void CollectionSensorUpdate() {
@@ -868,7 +850,7 @@ void BumpCollect()
 	motor.stop(RIGHT_MOTOR_PIN);
 
 	delay(COLLECTION_DELAY);
-	SquareTouch(diffDownSpeed.Value());
+	SquareTouch(800);
 }
 
 void AcquireWallFromCollect() 
@@ -922,15 +904,51 @@ void AcquireWallFromCollect()
 
 void BeginningMovement()
 {
-	motor.speed(LEFT_MOTOR_PIN, -1 * LEFT_DIFF_MULT * (diffDownSpeed.Value() + 200));
-	motor.speed(RIGHT_MOTOR_PIN, -1 * RIGHT_DIFF_MULT * (diffDownSpeed.Value() + 200));
+	SetServo(LEFT_SERVO, 180 - DIFF_ANGLE_CONSTANT);
+	SetServo(RIGHT_SERVO, DIFF_ANGLE_CONSTANT);
+
+	motor.speed(LEFT_MOTOR_PIN, -1 * LEFT_DIFF_MULT * 900);
+	motor.speed(RIGHT_MOTOR_PIN, -1 * RIGHT_DIFF_MULT * 900);
 	delay(600);
+	if (StopButton(100)) return;
+
+	Reset();
+	Print("Acquiring Tape");
+
+	int leftSpeed = 900 * strafeDirection;
+	int rightSpeed = 900 * strafeDirection;
+	unsigned long turnTime = millis();
+
+	SetServo(LEFT_SERVO, 180 - DIFF_ANGLE_CONSTANT);
+	SetServo(RIGHT_SERVO, DIFF_ANGLE_CONSTANT);
+
+	do
+	{
+		// Set motor speed, check QRD's
+		motor.speed(LEFT_MOTOR_PIN, leftSpeed);
+		motor.speed(RIGHT_MOTOR_PIN, rightSpeed);
+
+		qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
+		qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
+
+		// Reverses turn direction if a delay has passed
+		if(ACQUIRE_TAPE_TURN_DELAY <= millis() - turnTime)
+		{
+			leftSpeed *= -1;
+			rightSpeed *= -1;
+			turnTime = millis(); // Restarts timer
+			delay(250);
+		}
+
+		if(StopButton(100)) return; // escape condition
+
+		delay(50);
+	}
+	while(!qrdInnerLeft && !qrdInnerRight);
 
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
-	delay(250);
 
-	AcquireTapeFromWall();
 	maneuverState = TAPE_FOLLOW_DOWN_STATE;
 }
 
@@ -971,4 +989,127 @@ void EbayWait()
 	Print("complete");
 	delay(300); 
 	Reset();
+}
+
+void DoubleQRDFind()
+{
+	int leftSpeed = -900;
+	int rightSpeed = -900;
+	unsigned long turnTime = millis();
+
+	SetServo(LEFT_SERVO, 180 - DIFF_ANGLE_CONSTANT);
+	SetServo(RIGHT_SERVO, DIFF_ANGLE_CONSTANT);
+
+	motor.speed(LEFT_MOTOR_PIN, leftSpeed);
+	motor.speed(RIGHT_MOTOR_PIN, rightSpeed);
+
+	do // goes until outer left QRD is triggered
+	{
+		qrdOuterLeft = QRD(OUTER_LEFT_QRD_PIN);
+		if(StopButton(50)) return;
+	}
+	while(!qrdOuterLeft);
+
+	do // goes until an inner QRD is triggered
+	{
+		qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
+		qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
+		if(StopButton(50)) return;
+	}
+	while(!qrdInnerLeft && !qrdInnerRight);
+
+	do // wiggles if necessary
+	{
+		// Set motor speed, check QRD's
+		motor.speed(LEFT_MOTOR_PIN, leftSpeed);
+		motor.speed(RIGHT_MOTOR_PIN, rightSpeed);
+
+		qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
+		qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
+
+		// Reverses turn direction if a delay has passed
+		if(ACQUIRE_TAPE_TURN_DELAY <= millis() - turnTime)
+		{
+			leftSpeed *= -1;
+			rightSpeed *= -1;
+			turnTime = millis(); // Restarts timer
+
+			delay(250);
+		}
+
+		if(StopButton(100)) return; // escape condition
+
+		delay(50);
+	}
+	while(!qrdInnerLeft && !qrdInnerRight);
+}
+
+void ScanIR()
+{
+	if (TargetAcquired(5)) return;
+	motor.stop(LEFT_MOTOR_PIN);
+	motor.stop(RIGHT_MOTOR_PIN);
+	delay(100);
+
+	int turnDelay = 200;
+	while(true)
+	{
+		// Turn to one side
+		unsigned int startTime = millis();
+		motor.speed(LEFT_MOTOR_PIN, -900);
+		motor.speed(LEFT_MOTOR_PIN, -900);
+		while(millis() < startTime + turnDelay)
+		{
+			if (StopButton(100)) return;
+			if (TargetAcquired(5)) 
+			{
+				motor.stop(LEFT_MOTOR_PIN);
+				motor.stop(RIGHT_MOTOR_PIN);
+				return;
+			}
+		}
+		motor.stop(LEFT_MOTOR_PIN);
+		motor.stop(RIGHT_MOTOR_PIN);
+
+		// Turn to the other side
+		startTime = millis();
+		motor.speed(LEFT_MOTOR_PIN, 900);
+		motor.speed(RIGHT_MOTOR_PIN, 900);
+		while(millis() < startTime + (float)1.7 * (float)turnDelay)
+		{
+			if (StopButton(100)) return;
+			if (TargetAcquired(5)) 
+			{
+				motor.stop(LEFT_MOTOR_PIN);
+				motor.stop(RIGHT_MOTOR_PIN);
+
+				return;
+			}
+		}
+		motor.stop(LEFT_MOTOR_PIN);
+		motor.stop(RIGHT_MOTOR_PIN);
+
+		turnDelay += 200;
+	}
+
+	motor.stop(LEFT_MOTOR_PIN);
+	motor.stop(RIGHT_MOTOR_PIN);
+}
+
+void FollowIR(int speed)
+{
+	while(!TargetAcquired(5))
+	{
+		motor.speed(LEFT_MOTOR_PIN, -900);
+		motor.speed(RIGHT_MOTOR_PIN, -900);
+		if (StopButton(100)) return;
+	}
+
+	while(!Microswitch(LEFT_FRONT_MICROSWITCH_PIN) && !Microswitch(RIGHT_FRONT_MICROSWITCH_PIN))
+	{
+		ScanIR();
+		motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * -speed);
+		motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * -speed);
+		delay(850);
+	}
 }
