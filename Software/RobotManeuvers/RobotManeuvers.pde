@@ -31,7 +31,7 @@
 #define SERVO_WALL_FRONT_ANGLE 17
 // Ebay wait
 #define EBAY_WAIT 19
-#define 180_TURN_DELAY 20
+#define TURN_180_DELAY 20
 
 // PIN DECLARATIONS
 // LED Pins
@@ -158,7 +158,7 @@ MenuItem servoWallRearAngle = MenuItem("Rear ang", SERVO_WALL_REAR_ANGLE);
 MenuItem servoWallFrontAngle = MenuItem("Front ang", SERVO_WALL_FRONT_ANGLE);
 // Ebay wait
 MenuItem ebayWait = MenuItem("Ebay wait", EBAY_WAIT);
-MenuItem delay180 = MenuItem("180 delay", 180_TURN_DELAY);
+MenuItem delay180 = MenuItem("180 delay", TURN_180_DELAY);
 
 // Load menu items into an array
 MenuItem items[] = 
@@ -663,11 +663,11 @@ void MoveOffWall()
 	Reset(); Print("Backing up");
 	delay(MOVE_OFF_WALL_DELAY);
 
-	// Make a controlled turn
+/*	// Make a controlled turn
 	motor.speed(LEFT_MOTOR_PIN, diffDownSpeed.Value() * strafeDirection);
 	motor.speed(RIGHT_MOTOR_PIN, diffDownSpeed.Value() * strafeDirection);
 	Reset(); Print("180 deg turn");
-	delay(2 * delay180.Value());
+	delay(3 * delay180.Value());*/
 }
 
 void AcquireTapeFromWall()
@@ -682,6 +682,32 @@ void AcquireTapeFromWall()
 	SetServo(LEFT_SERVO, 180 - DIFF_ANGLE_CONSTANT);
 	SetServo(RIGHT_SERVO, DIFF_ANGLE_CONSTANT);
 
+	motor.speed(LEFT_MOTOR_PIN, leftSpeed);
+	motor.speed(RIGHT_MOTOR_PIN, rightSpeed);
+
+/*	do
+	{
+		qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
+		qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
+		if(StopButton(50)) return;
+	}
+	while(!qrdInnerLeft && !qrdInnerRight);*/
+
+/*	int currentThreshold = targetThreshold.Value();
+	targetThreshold.SetValue(300);
+
+	Reset(); Print("Turning");
+	motor.speed(LEFT_MOTOR_PIN, -900);
+	motor.speed(RIGHT_MOTOR_PIN, -900);
+	
+	do
+	{
+		if(StopButton(100)) return; // Escape condition
+	}
+	while(!TargetAcquired(5));
+
+	targetThreshold.SetValue(currentThreshold);
+*/
 	do
 	{
 		// Set motor speed, check QRD's
@@ -706,6 +732,9 @@ void AcquireTapeFromWall()
 		delay(50);
 	}
 	while(!qrdInnerLeft && !qrdInnerRight);
+
+	/*motor.stop(LEFT_MOTOR_PIN);
+	motor.stop(RIGHT_MOTOR_PIN);*/
 
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
@@ -829,6 +858,8 @@ void WallAlign()
 	}
 	while((!leftFront || !rightFront) && (millis() - startTime < 500)); 
 	// as long as BOTH switches are not triggered 
+	motor.stop(LEFT_MOTOR_PIN);
+	motor.stop(RIGHT_MOTOR_PIN);
 }
 
 void CollectionSensorUpdate() {
