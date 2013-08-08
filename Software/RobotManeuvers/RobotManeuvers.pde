@@ -32,6 +32,8 @@
 // Ebay wait
 #define EBAY_WAIT 19
 #define TURN_180_DELAY 20
+#define LEFT_MOTOR_SPEED 21
+#define RIGHT_MOTOR_SPEED 22
 
 // PIN DECLARATIONS
 // LED Pins
@@ -73,7 +75,7 @@
 #define DIFF_REVERSE 1
 #define TOO_LEFT -1.0
 #define TOO_RIGHT 1.0
-#define OFF_TAPE 1.0
+#define OFF_TAPE 2.0
 
 // OTHER CONSTANTS
 // Angle Constants
@@ -101,7 +103,6 @@
 // Loop behaviour switches
 #define FOLLOW_DOWN_DIRECTION 0
 #define FOLLOW_UP_DIRECTION 1
-
 
 // VARIABLES
 // State tracking
@@ -159,6 +160,9 @@ MenuItem servoWallFrontAngle = MenuItem("Front ang", SERVO_WALL_FRONT_ANGLE);
 // Ebay wait
 MenuItem ebayWait = MenuItem("Ebay wait", EBAY_WAIT);
 MenuItem delay180 = MenuItem("180 delay", TURN_180_DELAY);
+MenuItem leftMotorSpeed = MenuItem("LEFT", LEFT_MOTOR_SPEED);
+MenuItem rightMotorSpeed = MenuItem("RIGHT", RIGHT_MOTOR_SPEED);
+
 
 // Load menu items into an array
 MenuItem items[] = 
@@ -167,9 +171,10 @@ MenuItem items[] =
 	qrdProportionalGain, qrdDerivativeGain, rightStrafeGain,
 	brushSpeed, firingSpeed, bikeSpeed, diffUpSpeed, diffDownSpeed, 
 	servoLoadAngle, servoCollectAngle, servoWallRearAngle, servoWallFrontAngle, 
+	leftMotorSpeed, rightMotorSpeed,
 	ebayWait, delay180
 };
-const int itemCount = 18; // must equal menu item array size
+const int itemCount = 20; // must equal menu item array size
 
 const int lcdRefreshPeriod = 30; // Update LCD screen every n iterations. Larger = fewer updates. Smaller = flicker
 unsigned int lcdRefreshCount = 0; // Current iteration. Do not change this value
@@ -703,7 +708,7 @@ void FollowTapeSensorUpdate(int followDirection) // Update - Following tape
 float derivative = 0;
 void FollowTape(int followDirection) // Looping maneuver
 {
-	FollowTapeSensorUpdate(followDirection);
+	/*FollowTapeSensorUpdate(followDirection);
 	SetServo(BALL_SERVO, servoCollectAngle.Value());
 	SetServo(LEFT_SERVO, 180 - DIFF_ANGLE_CONSTANT);
 	SetServo(RIGHT_SERVO, DIFF_ANGLE_CONSTANT);
@@ -732,7 +737,8 @@ void FollowTape(int followDirection) // Looping maneuver
 		derivative += qrdError * qrdDerivativeGain.Value();
 
 	float compensationSpeed = proportional + derivative;
-	
+	qrdPreviousError = qrdError;
+
 	if (qrdError >= 0) 
 	{
 		motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * (-baseSpeed - compensationSpeed));
@@ -741,17 +747,22 @@ void FollowTape(int followDirection) // Looping maneuver
 	else
 	{
 		motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * -baseSpeed);
-		motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * (-baseSpeed + compensationSpeed));
+		motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * (-baseSpeed - compensationSpeed));
 	}
-
-	delay(25);
 
 	// Show steering information on screen
 	if(lcdRefreshCount > 2) return;
 	Reset();
 	Print("Steering: ", compensationSpeed);
 	LCD.setCursor(0, 1);
-	Print("Error: ", qrdError);
+	Print("Error: ", qrdError);*/
+	while(!Microswitch(LEFT_FRONT_MICROSWITCH_PIN) && !Microswitch(RIGHT_FRONT_MICROSWITCH_PIN))
+	{
+		motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * -leftMotorSpeed.Value());
+		motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * -rightMotorSpeed.Value());
+	}
+	motor.stop(LEFT_MOTOR_PIN);
+	motor.stop(RIGHT_MOTOR_PIN);
 }
 
 void SquareTouch(int baseSpeed)
