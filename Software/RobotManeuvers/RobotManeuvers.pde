@@ -1096,3 +1096,63 @@ void DoubleQRDFind()
 	}
 	while(!qrdInnerLeft && !qrdInnerRight);
 }
+
+void ScanIR()
+{
+	if (HomeBeaconAcquired()) return;
+	motor.stop(LEFT_MOTOR_PIN);
+	motor.stop(RIGHT_MOTOR_PIN);
+	delay(100);
+
+	int turnDelay = 200;
+	while(true)
+	{
+		// Turn to one side
+		unsigned int startTime = millis();
+		motor.speed(LEFT_MOTOR_PIN, -900);
+		motor.speed(LEFT_MOTOR_PIN, -900);
+		while(millis() < startTime + turnDelay)
+		{
+			if (HomeBeaconAcquired(5)) 
+			{
+				motor.stop(LEFT_MOTOR_PIN);
+				motor.stop(RIGHT_MOTOR_PIN);
+				return;
+			}
+		}
+		motor.stop(LEFT_MOTOR_PIN);
+		motor.stop(RIGHT_MOTOR_PIN);
+
+		// Turn to the other side
+		startTime = millis();
+		motor.speed(LEFT_MOTOR_PIN, 900);
+		motor.speed(RIGHT_MOTOR_PIN, 900);
+		while(millis() < startTime + (float)1.7 * (float)turnDelay)
+		{
+			if (HomeBeaconAcquired(5)) 
+			{
+				motor.stop(LEFT_MOTOR_PIN);
+				motor.stop(RIGHT_MOTOR_PIN);
+				return;
+			}
+		}
+		motor.stop(LEFT_MOTOR_PIN);
+		motor.stop(RIGHT_MOTOR_PIN);
+
+		turnDelay += 200;
+	}
+
+	motor.stop(LEFT_MOTOR_PIN);
+	motor.stop(RIGHT_MOTOR_PIN);
+}
+
+void FollowIR(int speed)
+{
+	while(!Microswitch(LEFT_FRONT_MICROSWITCH_PIN) && !Microswitch(RIGHT_FRONT_MICROSWITCH_PIN))
+	{
+		ScanIR();
+		motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * speed);
+		motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * speed);
+		delay(500);
+	}
+}
