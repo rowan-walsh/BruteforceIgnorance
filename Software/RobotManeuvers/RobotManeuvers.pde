@@ -366,7 +366,7 @@ bool TargetAcquired(int debounceTime = 15)
 }
 
 // Returns a bool indicating whether the home beacon is detected
-bool HomeBeaconAcquired(int debounceTime = 15)
+bool TargetAcquired(int debounceTime = 15)
 {
 	if(analogRead(HOME_BEACON_IR_PIN) < homeBeaconThreshold.Value()) return false;
 	delay(debounceTime);
@@ -457,7 +457,7 @@ void SecretFiringLevel()
 void WallFollowSensorUpdate()
 {
 	UpdateWallFollowMicroswitches();
-	if (!passedHomeBeacon && HomeBeaconAcquired()) passedHomeBeacon = true;
+	if (!passedHomeBeacon && TargetAcquired()) passedHomeBeacon = true;
 
 	// If no ball detected, debounce and then check again
 	if(!leavingWall && !Armed() && !BreakBeam()) 
@@ -524,7 +524,7 @@ void WallFollow()
 		leavingWall = false;
 		Reset();
 		Print("Finding 10K IR");
-		while (!HomeBeaconAcquired())
+		while (!TargetAcquired())
 		{
 			Strafe();
 			WallFollowSensorUpdate();
@@ -929,7 +929,7 @@ void AcquireWallFromCollect()
 	{
 		if(StopButton(100)) return; // Escape condition
 	}
-	while(!HomeBeaconAcquired(5));
+	while(!TargetAcquired(5));
 
 	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
 	motor.stop(LEFT_MOTOR_PIN);
@@ -1099,7 +1099,7 @@ void DoubleQRDFind()
 
 void ScanIR()
 {
-	if (HomeBeaconAcquired()) return;
+	if (TargetAcquired(5)) return;
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
 	delay(100);
@@ -1113,7 +1113,7 @@ void ScanIR()
 		motor.speed(LEFT_MOTOR_PIN, -900);
 		while(millis() < startTime + turnDelay)
 		{
-			if (HomeBeaconAcquired(5)) 
+			if (TargetAcquired(5)) 
 			{
 				motor.stop(LEFT_MOTOR_PIN);
 				motor.stop(RIGHT_MOTOR_PIN);
@@ -1129,7 +1129,7 @@ void ScanIR()
 		motor.speed(RIGHT_MOTOR_PIN, 900);
 		while(millis() < startTime + (float)1.7 * (float)turnDelay)
 		{
-			if (HomeBeaconAcquired(5)) 
+			if (TargetAcquired(5)) 
 			{
 				motor.stop(LEFT_MOTOR_PIN);
 				motor.stop(RIGHT_MOTOR_PIN);
