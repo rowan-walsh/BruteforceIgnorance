@@ -1043,3 +1043,56 @@ void EbayWait()
 	delay(300); 
 	Reset();
 }
+
+void DoubleQRDFind()
+{
+	int leftSpeed = -900 * strafeDirection;
+	int rightSpeed = -900 * strafeDirection;
+	unsigned long turnTime = millis();
+
+	SetServo(LEFT_SERVO, 180 - DIFF_ANGLE_CONSTANT);
+	SetServo(RIGHT_SERVO, DIFF_ANGLE_CONSTANT);
+
+	motor.speed(LEFT_MOTOR_PIN, leftSpeed);
+	motor.speed(RIGHT_MOTOR_PIN, rightSpeed);
+
+	do // goes until outer left QRD is triggered
+	{
+		qrdOuterLeft = QRD(OUTER_LEFT_QRD_PIN);
+		if(StopButton(50)) return;
+	}
+	while(!qrdOuterLeft);
+
+	do // goes until an inner QRD is triggered
+	{
+		qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
+		qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
+		if(StopButton(50)) return;
+	}
+	while(!qrdInnerLeft && !qrdInnerRight);
+
+	do // wiggles if necessary
+	{
+		// Set motor speed, check QRD's
+		motor.speed(LEFT_MOTOR_PIN, leftSpeed);
+		motor.speed(RIGHT_MOTOR_PIN, rightSpeed);
+
+		qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
+		qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
+
+		// Reverses turn direction if a delay has passed
+		if(ACQUIRE_TAPE_TURN_DELAY <= millis() - turnTime)
+		{
+			leftSpeed *= -1;
+			rightSpeed *= -1;
+			turnTime = millis(); // Restarts timer
+
+			delay(250);
+		}
+
+		if(StopButton(100)) return; // escape condition
+
+		delay(50);
+	}
+	while(!qrdInnerLeft && !qrdInnerRight);
+}
