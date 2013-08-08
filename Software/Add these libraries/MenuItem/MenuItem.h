@@ -5,10 +5,9 @@ class MenuItem
 {
 private:
 	int eepromAddress;
-	int value;
 	String name;
+	int value;
 public:
-	
 	MenuItem();
 	MenuItem(String itemName, int itemEepromAddress);
 	
