@@ -1046,8 +1046,8 @@ void EbayWait()
 
 void DoubleQRDFind()
 {
-	int leftSpeed = -900 * strafeDirection;
-	int rightSpeed = -900 * strafeDirection;
+	int leftSpeed = -900;
+	int rightSpeed = -900;
 	unsigned long turnTime = millis();
 
 	SetServo(LEFT_SERVO, 180 - DIFF_ANGLE_CONSTANT);
