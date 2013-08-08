@@ -365,6 +365,13 @@ bool TargetAcquired(int debounceTime = 15)
 	return false;
 }
 
+// Returns a bool indicating whether the home beacon is detected
+bool HomeBeaconAcquired(int debounceTime = 15)
+{
+	if(analogRead(HOME_BEACON_IR_PIN) < homeBeaconThreshold.Value()) return false;
+	delay(debounceTime);
+	return (analogRead(HOME_BEACON_IR_PIN) >= homeBeaconThreshold.Value());
+}
 
 void Update() // Update - Menu and LCD
 {
@@ -450,7 +457,7 @@ void SecretFiringLevel()
 void WallFollowSensorUpdate()
 {
 	UpdateWallFollowMicroswitches();
-	if (!passedHomeBeacon && TargetAcquired()) passedHomeBeacon = true;
+	if (!passedHomeBeacon && HomeBeaconAcquired()) passedHomeBeacon = true;
 
 	// If no ball detected, debounce and then check again
 	if(!leavingWall && !Armed() && !BreakBeam()) 
@@ -517,7 +524,7 @@ void WallFollow()
 		leavingWall = false;
 		Reset();
 		Print("Finding 10K IR");
-		while (!TargetAcquired())
+		while (!HomeBeaconAcquired())
 		{
 			Strafe();
 			WallFollowSensorUpdate();
@@ -701,6 +708,7 @@ void AcquireTapeFromWall()
 
 	targetThreshold.SetValue(currentThreshold);
 */
+	FollowIR(diffDownSpeed.Value());
 	/*do
 	{
 		// Set motor speed, check QRD's
@@ -725,7 +733,7 @@ void AcquireTapeFromWall()
 		delay(50);
 	}
 	while(!qrdInnerLeft && !qrdInnerRight);*/
-	FollowIR(diffDownSpeed.Value());
+
 	/*motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);*/
 
@@ -922,7 +930,7 @@ void AcquireWallFromCollect()
 	{
 		if(StopButton(100)) return; // Escape condition
 	}
-	while(!TargetAcquired(5));
+	while(!HomeBeaconAcquired(5));
 
 	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value());
 	motor.stop(LEFT_MOTOR_PIN);
@@ -1123,11 +1131,12 @@ void ScanIR()
 		motor.speed(RIGHT_MOTOR_PIN, 900);
 		while(millis() < startTime + (float)1.7 * (float)turnDelay)
 		{
-			motor.stop(LEFT_MOTOR_PIN);
+			if (StopButton(100)) return;
 			if (TargetAcquired(5)) 
 			{
 				motor.stop(LEFT_MOTOR_PIN);
 				motor.stop(RIGHT_MOTOR_PIN);
+
 				return;
 			}
 		}
@@ -1145,18 +1154,16 @@ void FollowIR(int speed)
 {
 	while(!TargetAcquired(5))
 	{
-		if (StopButton(100)) return;
 		motor.speed(LEFT_MOTOR_PIN, -900);
 		motor.speed(RIGHT_MOTOR_PIN, -900);
+		if (StopButton(100)) return;
 	}
-	motor.stop(LEFT_MOTOR_PIN);
-	motor.stop(RIGHT_MOTOR_PIN);
 
 	while(!Microswitch(LEFT_FRONT_MICROSWITCH_PIN) && !Microswitch(RIGHT_FRONT_MICROSWITCH_PIN))
 	{
 		ScanIR();
-		motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * speed);
-		motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * speed);
-		delay(800);
+		motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * -speed);
+		motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * -speed);
+		delay(850);
 	}
 }
