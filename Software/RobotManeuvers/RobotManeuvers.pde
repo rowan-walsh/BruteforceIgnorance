@@ -365,13 +365,6 @@ bool TargetAcquired(int debounceTime = 15)
 	return false;
 }
 
-// Returns a bool indicating whether the home beacon is detected
-bool TargetAcquired(int debounceTime = 15)
-{
-	if(analogRead(HOME_BEACON_IR_PIN) < homeBeaconThreshold.Value()) return false;
-	delay(debounceTime);
-	return (analogRead(HOME_BEACON_IR_PIN) >= homeBeaconThreshold.Value());
-}
 
 void Update() // Update - Menu and LCD
 {
@@ -708,7 +701,7 @@ void AcquireTapeFromWall()
 
 	targetThreshold.SetValue(currentThreshold);
 */
-	do
+	/*do
 	{
 		// Set motor speed, check QRD's
 		motor.speed(LEFT_MOTOR_PIN, leftSpeed);
@@ -731,8 +724,8 @@ void AcquireTapeFromWall()
 
 		delay(50);
 	}
-	while(!qrdInnerLeft && !qrdInnerRight);
-
+	while(!qrdInnerLeft && !qrdInnerRight);*/
+	FollowIR(diffDownSpeed.Value());
 	/*motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);*/
 
@@ -1113,6 +1106,7 @@ void ScanIR()
 		motor.speed(LEFT_MOTOR_PIN, -900);
 		while(millis() < startTime + turnDelay)
 		{
+			if (StopButton(100)) return;
 			if (TargetAcquired(5)) 
 			{
 				motor.stop(LEFT_MOTOR_PIN);
@@ -1129,6 +1123,7 @@ void ScanIR()
 		motor.speed(RIGHT_MOTOR_PIN, 900);
 		while(millis() < startTime + (float)1.7 * (float)turnDelay)
 		{
+			motor.stop(LEFT_MOTOR_PIN);
 			if (TargetAcquired(5)) 
 			{
 				motor.stop(LEFT_MOTOR_PIN);
@@ -1148,11 +1143,20 @@ void ScanIR()
 
 void FollowIR(int speed)
 {
+	while(!TargetAcquired(5))
+	{
+		if (StopButton(100)) return;
+		motor.speed(LEFT_MOTOR_PIN, -900);
+		motor.speed(RIGHT_MOTOR_PIN, -900);
+	}
+	motor.stop(LEFT_MOTOR_PIN);
+	motor.stop(RIGHT_MOTOR_PIN);
+
 	while(!Microswitch(LEFT_FRONT_MICROSWITCH_PIN) && !Microswitch(RIGHT_FRONT_MICROSWITCH_PIN))
 	{
 		ScanIR();
 		motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * speed);
 		motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * speed);
-		delay(500);
+		delay(800);
 	}
 }
