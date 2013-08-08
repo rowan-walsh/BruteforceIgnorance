@@ -55,7 +55,7 @@
 #define TARGET_IR_PIN 1
 #define HOME_BEACON_IR_PIN 0
 // Digital Inputs
-#define LEFT_SIDE_MICROSWITCH_PIN 7
+#define LEFT_SIDE_MICROSWITCH_PIN 0
 #define LEFT_FRONT_MICROSWITCH_PIN 6
 #define RIGHT_SIDE_MICROSWITCH_PIN 4
 #define RIGHT_FRONT_MICROSWITCH_PIN 5
@@ -119,7 +119,7 @@ bool qrdInnerLeft = false;
 bool qrdInnerRight = false;
 bool qrdOuterRight = false;
 // Wall Following
-int strafeDirection = LEFT_DIRECTION;
+int strafeDirection = RIGHT_DIRECTION;
 int correctionMultiplier = 1;
 bool frontTouchWall = false;
 bool backTouchWall = false;
@@ -182,7 +182,7 @@ unsigned int lcdRefreshCount = 0; // Current iteration. Do not change this value
 void setup()
 {
 	portMode(0, INPUT);       
-	portMode(1, OUTPUT); 
+	portMode(1, INPUT); 
 	RCServo0.attach(RCServo0Output);
 	RCServo1.attach(RCServo1Output);
 	RCServo2.attach(RCServo2Output);
@@ -473,7 +473,7 @@ void WallFollowSensorUpdate()
 			Reset(); Print("Ball lost!");
 			delay(10);
 		}
-		while (!leavingWall && !Armed() && !BreakBeam() && (millis() < startTime + 1000)); 
+		while (!leavingWall && !Armed() && !BreakBeam() && (millis() < startTime + 3000)); 
 
 		if (!Armed() && !BreakBeam()) 
 			leavingWall = true;		
@@ -667,19 +667,19 @@ void MoveOffWall()
 	Reset(); Print("Backing up");
 	delay(MOVE_OFF_WALL_DELAY);
 
-/*	// Make a controlled turn
+	// Make a controlled turn
 	motor.speed(LEFT_MOTOR_PIN, diffDownSpeed.Value() * strafeDirection);
 	motor.speed(RIGHT_MOTOR_PIN, diffDownSpeed.Value() * strafeDirection);
 	Reset(); Print("180 deg turn");
-	delay(3 * delay180.Value());*/
+	delay(3 * delay180.Value());
 }
 
 void AcquireTapeFromWall()
 {
 
 	//FollowIR(diffDownSpeed.Value());
-	DoubleQRDFind();
-	
+//	DoubleQRDFind();
+	FollowTape(FOLLOW_DOWN_DIRECTION);
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
 }
@@ -755,14 +755,30 @@ void FollowTape(int followDirection) // Looping maneuver
 	Print("Steering: ", compensationSpeed);
 	LCD.setCursor(0, 1);
 	Print("Error: ", qrdError);*/
-	while(!Microswitch(LEFT_FRONT_MICROSWITCH_PIN) && !Microswitch(RIGHT_FRONT_MICROSWITCH_PIN))
+
+//	unsigned int startTime = millis();
+	motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * -leftMotorSpeed.Value());
+	motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * -rightMotorSpeed.Value());
+
+	int i = 0;
+	while(!Microswitch(LEFT_FRONT_MICROSWITCH_PIN) && !Microswitch(RIGHT_FRONT_MICROSWITCH_PIN) )
 	{
 		if (StopButton(100)) return;
-		motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * -leftMotorSpeed.Value());
-		motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * -rightMotorSpeed.Value());
+		delay(10);
+		i++;
+		if (i > 500) 
+		{
+			i = 0;
+			break;
+		}
 	}
+
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
+	SquareTouch(800);					// square to collection wall
+	maneuverState = COLLECTION_STATE;					// begin collection maneuver
+	endFound = false;
+	return;
 }
 
 void SquareTouch(int baseSpeed)
@@ -771,9 +787,17 @@ void SquareTouch(int baseSpeed)
 	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value()); // Engage collection
 	int dampedSpeed = baseSpeed - 50;
 
-	unsigned int startTime = millis();
+	//unsigned int startTime = millis();
+	int i = 0;
 	do
 	{
+		i++;
+		if (i > 500) 
+		{
+			i = 0;
+			return;
+		}
+		delay(10);
 		leftFront = Microswitch(LEFT_FRONT_MICROSWITCH_PIN);
 		rightFront = Microswitch(RIGHT_FRONT_MICROSWITCH_PIN);
 		
@@ -922,7 +946,7 @@ void BeginningMovement()
 	SetServo(LEFT_SERVO, 180 - DIFF_ANGLE_CONSTANT);
 	SetServo(RIGHT_SERVO, DIFF_ANGLE_CONSTANT);
 
-	do
+	/*do
 	{
 		// Set motor speed, check QRD's
 		motor.speed(LEFT_MOTOR_PIN, leftSpeed);
@@ -944,7 +968,7 @@ void BeginningMovement()
 
 		delay(50);
 	}
-	while(!qrdInnerLeft && !qrdInnerRight);
+	while(!qrdInnerLeft && !qrdInnerRight);*/
 
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
