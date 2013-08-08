@@ -673,8 +673,8 @@ void MoveOffWall()
 void AcquireTapeFromWall()
 {
 
-	FollowIR(diffDownSpeed.Value());
-	//DoubleQRDFind();
+	//FollowIR(diffDownSpeed.Value());
+	DoubleQRDFind();
 	
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
@@ -700,7 +700,7 @@ void FollowTapeSensorUpdate(int followDirection) // Update - Following tape
 	qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
 	qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
 }
-
+float derivative = 0;
 void FollowTape(int followDirection) // Looping maneuver
 {
 	FollowTapeSensorUpdate(followDirection);
@@ -713,7 +713,7 @@ void FollowTape(int followDirection) // Looping maneuver
 	// If the end has been found,
 	if(endFound && (followDirection == FOLLOW_DOWN_DIRECTION))
 	{
-		SquareTouch(diffDownSpeed.Value());					// square to collection wall
+		SquareTouch(800);					// square to collection wall
 		maneuverState = COLLECTION_STATE;					// begin collection maneuver
 		endFound = false;
 		return;
@@ -727,7 +727,11 @@ void FollowTape(int followDirection) // Looping maneuver
 
 	// Compute PID course correction
 	float proportional = qrdError * qrdProportionalGain.Value();
-	float derivative = (float)(qrdError - qrdPreviousError) / (float)qrdDeriveCounter * qrdDerivativeGain.Value();
+	
+	if (!((derivative > 250 && qrdError > 0) || (derivative < -250 && qrdError < 0)))
+		derivative += qrdError * qrdDerivativeGain.Value();
+
+
 	float compensationSpeed = proportional + derivative;
 	
 	if (qrdError >= 0) 
@@ -775,7 +779,7 @@ void SquareTouch(int baseSpeed)
 		motor.speed(LEFT_MOTOR_PIN, -leftSpeed);
 		motor.speed(RIGHT_MOTOR_PIN, -rightSpeed);
 
-		if (millis() > startTime + 2000) baseSpeed = dampedSpeed;
+	//	if (millis() > startTime + 2000) baseSpeed = dampedSpeed;
 		if (StopButton(100)) return; // escape condition
 	}
 	while(!leftFront && !rightFront); // as long as neither switch is triggered
@@ -842,7 +846,7 @@ void BumpCollect()
 	motor.stop(RIGHT_MOTOR_PIN);
 
 	delay(COLLECTION_DELAY);
-	SquareTouch(diffDownSpeed.Value());
+	SquareTouch(800);
 }
 
 void AcquireWallFromCollect() 
@@ -929,7 +933,6 @@ void BeginningMovement()
 			leftSpeed *= -1;
 			rightSpeed *= -1;
 			turnTime = millis(); // Restarts timer
-
 			delay(250);
 		}
 
