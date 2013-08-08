@@ -73,7 +73,7 @@
 #define DIFF_REVERSE 1
 #define TOO_LEFT -1.0
 #define TOO_RIGHT 1.0
-#define OFF_TAPE 2.0
+#define OFF_TAPE 1.0
 
 // OTHER CONSTANTS
 // Angle Constants
@@ -672,8 +672,6 @@ void MoveOffWall()
 
 void AcquireTapeFromWall()
 {
-	motor.speed(LEFT_MOTOR_PIN, leftSpeed);
-	motor.speed(RIGHT_MOTOR_PIN, rightSpeed);
 
 	FollowIR(diffDownSpeed.Value());
 	//DoubleQRDFind();
@@ -898,13 +896,13 @@ void AcquireWallFromCollect()
 
 void BeginningMovement()
 {
-	motor.speed(LEFT_MOTOR_PIN, -1 * LEFT_DIFF_MULT * (diffDownSpeed.Value() + 200));
-	motor.speed(RIGHT_MOTOR_PIN, -1 * RIGHT_DIFF_MULT * (diffDownSpeed.Value() + 200));
-	delay(700);
+	SetServo(LEFT_SERVO, 180 - DIFF_ANGLE_CONSTANT);
+	SetServo(RIGHT_SERVO, DIFF_ANGLE_CONSTANT);
 
-	motor.stop(LEFT_MOTOR_PIN);
-	motor.stop(RIGHT_MOTOR_PIN);
-	delay(250);
+	motor.speed(LEFT_MOTOR_PIN, -1 * LEFT_DIFF_MULT * 900);
+	motor.speed(RIGHT_MOTOR_PIN, -1 * RIGHT_DIFF_MULT * 900);
+	delay(600);
+	if (StopButton(100)) return;
 
 	Reset();
 	Print("Acquiring Tape");
