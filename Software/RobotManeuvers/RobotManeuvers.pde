@@ -964,7 +964,44 @@ void BeginningMovement()
 	motor.stop(RIGHT_MOTOR_PIN);
 	delay(250);
 
-	AcquireTapeFromWall();
+	Reset();
+	Print("Acquiring Tape");
+
+	int leftSpeed = 900 * strafeDirection;
+	int rightSpeed = 900 * strafeDirection;
+	unsigned long turnTime = millis();
+
+	SetServo(LEFT_SERVO, 180 - DIFF_ANGLE_CONSTANT);
+	SetServo(RIGHT_SERVO, DIFF_ANGLE_CONSTANT);
+
+	do
+	{
+		// Set motor speed, check QRD's
+		motor.speed(LEFT_MOTOR_PIN, leftSpeed);
+		motor.speed(RIGHT_MOTOR_PIN, rightSpeed);
+
+		qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
+		qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
+
+		// Reverses turn direction if a delay has passed
+		if(ACQUIRE_TAPE_TURN_DELAY <= millis() - turnTime)
+		{
+			leftSpeed *= -1;
+			rightSpeed *= -1;
+			turnTime = millis(); // Restarts timer
+
+			delay(250);
+		}
+
+		if(StopButton(100)) return; // escape condition
+
+		delay(50);
+	}
+	while(!qrdInnerLeft && !qrdInnerRight);
+
+	motor.stop(LEFT_MOTOR_PIN);
+	motor.stop(RIGHT_MOTOR_PIN);
+
 	maneuverState = TAPE_FOLLOW_DOWN_STATE;
 }
 
