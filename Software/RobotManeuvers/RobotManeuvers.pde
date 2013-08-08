@@ -758,6 +758,7 @@ void FollowTape(int followDirection) // Looping maneuver
 	Print("Error: ", qrdError);*/
 	while(!Microswitch(LEFT_FRONT_MICROSWITCH_PIN) && !Microswitch(RIGHT_FRONT_MICROSWITCH_PIN))
 	{
+		if (StopButton(100)) return;
 		motor.speed(LEFT_MOTOR_PIN, LEFT_DIFF_MULT * -leftMotorSpeed.Value());
 		motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * -rightMotorSpeed.Value());
 	}
