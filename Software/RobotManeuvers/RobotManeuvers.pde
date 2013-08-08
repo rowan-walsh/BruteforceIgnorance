@@ -821,7 +821,9 @@ void SquareTouch(int baseSpeed)
 {
 	Reset(); Print("Square touch");
 	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value()); // Engage collection
-	
+	int dampedSpeed = (int)((float)baseSpeed * 0.75);
+
+	unsigned int startTime = millis();
 	do
 	{
 		leftFront = Microswitch(LEFT_FRONT_MICROSWITCH_PIN);
@@ -833,6 +835,7 @@ void SquareTouch(int baseSpeed)
 		motor.speed(LEFT_MOTOR_PIN, -leftSpeed);
 		motor.speed(RIGHT_MOTOR_PIN, -rightSpeed);
 
+		if (millis() > startTime + 2000) baseSpeed = dampedSpeed;
 		if (StopButton(100)) return; // escape condition
 	}
 	while(!leftFront && !rightFront); // as long as neither switch is triggered
