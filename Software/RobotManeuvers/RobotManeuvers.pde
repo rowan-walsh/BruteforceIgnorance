@@ -672,71 +672,12 @@ void MoveOffWall()
 
 void AcquireTapeFromWall()
 {
-	Reset();
-	Print("Acquiring Tape");
-
-	int leftSpeed = 900 * strafeDirection;
-	int rightSpeed = 900 * strafeDirection;
-	unsigned long turnTime = millis();
-
-	SetServo(LEFT_SERVO, 180 - DIFF_ANGLE_CONSTANT);
-	SetServo(RIGHT_SERVO, DIFF_ANGLE_CONSTANT);
-
 	motor.speed(LEFT_MOTOR_PIN, leftSpeed);
 	motor.speed(RIGHT_MOTOR_PIN, rightSpeed);
 
-/*	do
-	{
-		qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
-		qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
-		if(StopButton(50)) return;
-	}
-	while(!qrdInnerLeft && !qrdInnerRight);*/
-
-/*	int currentThreshold = targetThreshold.Value();
-	targetThreshold.SetValue(300);
-
-	Reset(); Print("Turning");
-	motor.speed(LEFT_MOTOR_PIN, -900);
-	motor.speed(RIGHT_MOTOR_PIN, -900);
-	
-	do
-	{
-		if(StopButton(100)) return; // Escape condition
-	}
-	while(!TargetAcquired(5));
-
-	targetThreshold.SetValue(currentThreshold);
-*/
 	FollowIR(diffDownSpeed.Value());
-	/*do
-	{
-		// Set motor speed, check QRD's
-		motor.speed(LEFT_MOTOR_PIN, leftSpeed);
-		motor.speed(RIGHT_MOTOR_PIN, rightSpeed);
-
-		qrdInnerLeft = QRD(INNER_LEFT_QRD_PIN);
-		qrdInnerRight = QRD(INNER_RIGHT_QRD_PIN);
-
-		// Reverses turn direction if a delay has passed
-		if(ACQUIRE_TAPE_TURN_DELAY <= millis() - turnTime)
-		{
-			leftSpeed *= -1;
-			rightSpeed *= -1;
-			turnTime = millis(); // Restarts timer
-
-			delay(250);
-		}
-
-		if(StopButton(100)) return; // escape condition
-
-		delay(50);
-	}
-	while(!qrdInnerLeft && !qrdInnerRight);*/
-
-	/*motor.stop(LEFT_MOTOR_PIN);
-	motor.stop(RIGHT_MOTOR_PIN);*/
-
+	//DoubleQRDFind();
+	
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
 }
@@ -822,7 +763,7 @@ void SquareTouch(int baseSpeed)
 {
 	Reset(); Print("Square touch");
 	motor.speed(BRUSH_MOTOR_PIN, brushSpeed.Value()); // Engage collection
-	int dampedSpeed = (int)((float)baseSpeed * 0.75);
+	int dampedSpeed = baseSpeed - 50;
 
 	unsigned int startTime = millis();
 	do
@@ -959,7 +900,7 @@ void BeginningMovement()
 {
 	motor.speed(LEFT_MOTOR_PIN, -1 * LEFT_DIFF_MULT * (diffDownSpeed.Value() + 200));
 	motor.speed(RIGHT_MOTOR_PIN, -1 * RIGHT_DIFF_MULT * (diffDownSpeed.Value() + 200));
-	delay(600);
+	delay(700);
 
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
