@@ -496,7 +496,6 @@ void SwitchWallFollowDirection()
 
 	motor.stop(LEFT_MOTOR_PIN);
 	motor.stop(RIGHT_MOTOR_PIN);
-	delay(1000); // can lower later
 
 	if (strafeDirection == LEFT_DIRECTION)
 	{
