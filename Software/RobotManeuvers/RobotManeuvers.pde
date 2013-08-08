@@ -731,7 +731,6 @@ void FollowTape(int followDirection) // Looping maneuver
 	if (!((derivative > 250 && qrdError > 0) || (derivative < -250 && qrdError < 0)))
 		derivative += qrdError * qrdDerivativeGain.Value();
 
-
 	float compensationSpeed = proportional + derivative;
 	
 	if (qrdError >= 0) 
@@ -745,13 +744,7 @@ void FollowTape(int followDirection) // Looping maneuver
 		motor.speed(RIGHT_MOTOR_PIN, RIGHT_DIFF_MULT * (-baseSpeed + compensationSpeed));
 	}
 
-	// Keep track of differential gain
-	if(qrdPreviousError != qrdError)
-	{
-		qrdPreviousError = qrdError;
-		qrdDeriveCounter = 1;
-	}
-	else qrdDeriveCounter++;
+	delay(25);
 
 	// Show steering information on screen
 	if(lcdRefreshCount > 2) return;
